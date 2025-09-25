@@ -24,7 +24,7 @@ jobs:
       PYARROW_IGNORE_TIMEZONE: "1"
       PYSPARK_SUBMIT_ARGS: "--conf spark.ui.enabled=false --conf spark.sql.shuffle.partitions=2 pyspark-shell"
       _JAVA_OPTIONS: "-Xms256m -Xmx2g -XX:+UseG1GC -Djava.awt.headless=true"
-      SPARK_LOCAL_DIRS: ${{ runner.temp }}
+      SPARK_LOCAL_DIRS: "/tmp"
 
 
     steps:
