@@ -41,12 +41,11 @@ jobs:
         distribution: "temurin"
         java-version: ${{ matrix.java-version }}
 
-
     - name: Install Hatch
       run: pip install --upgrade pip hatch
 
-    - name: Install dev dependencies via Hatch
-      run: hatch env create
+    - name: Install dev dependencies
+      run: pip install -e .[dev]
 
     - name: Show versions
       run: |
