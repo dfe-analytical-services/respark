@@ -9,3 +9,4 @@ dist/
 
 # Test
 .pytest_cache/
+__pycache__/
