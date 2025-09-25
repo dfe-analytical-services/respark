@@ -7,7 +7,7 @@ name = "respark"
 version = "0.0.1"
 description = "Generate privacy‑safe synthetic data from production Spark DataFrames"
 readme = { file = "README.md", content-type = "text/markdown" }
-requires-python = ">=3.9"
+requires-python = ">=3.12"
 license = { file = "LICENCE" }
 
 
@@ -21,10 +21,13 @@ classifiers = [
   "Programming Language :: Python :: 3"
 ]
 
-dependencies = []
 
 [project.optional-dependencies]
-pyspark = ["pyspark>=3.5,<3.6"]
+dev = [
+"pyspark>=3.5,<3.6",
+"pytest",
+]
+
 
 [project.urls]
 Source = "https://github.com/dfe-analytical-services/respark"
