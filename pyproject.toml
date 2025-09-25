@@ -29,12 +29,15 @@ pyspark = ["pyspark>=3.5,<3.6"]
 [project.urls]
 Source = "https://github.com/dfe-analytical-services/respark"
 
+[tool.hatch.build]
+packages = ["src/respark"]
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/respark"]
 
 [tool.hatch.build.targets.sdist]
 include = [
-  "/README.md",
-  "/LICENCE",
-  "/src/respark"
+  "README.md",
+  "LICENCE",
+  "src/respark"
 ]
