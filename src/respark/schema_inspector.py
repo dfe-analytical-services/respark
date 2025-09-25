@@ -50,7 +50,7 @@ class SchemaInspector:
         self._default_single_name = default_single_name
 
     def inspect(self, tables: Union[DataFrame, Dict[str, DataFrame]]) -> SchemaModel:
-        table_map = self._as_table_map(tables)
+        table_map = self._as_table_map(tables, self._default_single_name)
         model = SchemaModel()
 
         for table_name, df in table_map.items():
@@ -67,14 +67,14 @@ class SchemaInspector:
                 )
                 table_info.columns[field.name] = col_info
 
-            model.tables[tname] = tinfo
+            model.tables[table_name] = table_info
 
         return model
 
     @staticmethod
-    def _as_table_map(tables: Union[DataFrame, Dict[str, DataFrame]]) -> Dict[str, DataFrame]:
+    def _as_table_map(tables: Union[DataFrame, Dict[str, DataFrame]], default_single_name: str) -> Dict[str, DataFrame]:
         if isinstance(tables, DataFrame):
-            return {"table": tables}
+            return {default_single_name: tables}
         if isinstance(tables, dict):
             for k, v in tables.items():
                 if not isinstance(k, str) or not isinstance(v, DataFrame):
