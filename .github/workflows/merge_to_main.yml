@@ -1,0 +1,72 @@
+
+name: merge_to_main
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12"]
+        java-version: ["17"]
+
+    env:
+      SPARK_LOCAL_IP: "127.0.0.1"
+      PYSPARK_PYTHON: "python"
+      PYSPARK_DRIVER_PYTHON: "python"
+      PYARROW_IGNORE_TIMEZONE: "1"
+      PYSPARK_SUBMIT_ARGS: "--conf spark.ui.enabled=false --conf spark.sql.shuffle.partitions=2 pyspark-shell"
+      _JAVA_OPTIONS: "-Xms256m -Xmx2g -XX:+UseG1GC -Djava.awt.headless=true"
+      SPARK_LOCAL_DIRS: ${{ runner.temp }}
+
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v3
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Set up Java ${{ matrix.java-version }}
+      uses: actions/setup-java@v4
+      with:
+        distribution: "temurin"
+        java-version: ${{ matrix.java-version }}
+
+
+    - name: Install Hatch
+      run: pip install --upgrade pip hatch
+
+    - name: Install dev dependencies via Hatch
+      run: hatch env create
+
+    - name: Show versions
+      run: |
+        python -V
+        java -version
+        hatch --version
+
+    - name: Run pytest
+      run: |
+        hatch run pytest -n auto --dist worksteal \
+          --maxfail=1 --disable-warnings \
+          --cov=. --cov-report=xml \
+          --junitxml=test-results/pytest-junit.xml -
+
+    - name: Upload test artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: pytest-reports
+        path: |
+          test-results/pytest-junit.xml
+          coverage.xml
+
