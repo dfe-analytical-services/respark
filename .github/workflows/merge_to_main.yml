@@ -49,23 +49,14 @@ jobs:
 
     - name: Show versions
       run: |
-        python -V
-        java -version
-        hatch --version
+         python - <<'PY'
+         import sys
+         print("Python:", sys.version.split()[0])
+         import pyspark, pytest
+         print("PySpark:", pyspark.__version__)
+         print("pytest:", pytest.__version__)
+         PY
 
-    - name: Run pytest
+    - name: Run pytest        
       run: |
-        hatch run pytest -n auto --dist worksteal \
-          --maxfail=1 --disable-warnings \
-          --cov=. --cov-report=xml \
-          --junitxml=test-results/pytest-junit.xml -
-
-    - name: Upload test artifacts
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: pytest-reports
-        path: |
-          test-results/pytest-junit.xml
-          coverage.xml
-
+         pytest -q --maxfail=1 --disable-warning
