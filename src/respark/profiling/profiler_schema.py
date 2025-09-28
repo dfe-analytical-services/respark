@@ -1,11 +1,8 @@
 from dataclasses import dataclass, field, asdict
-from typing import Dict, Any, Union, Tuple, Optional
-from pyspark.sql import DataFrame, Column
-from pyspark.sql import types as T, functions as F
+from typing import Dict, Any, Union
+from pyspark.sql import DataFrame
 
-from .table_profiler import TableProfile, profile_table
-
-
+from .profiler_table import TableProfile, profile_table
 
   
 @dataclass(slots=True)

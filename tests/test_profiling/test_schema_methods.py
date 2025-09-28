@@ -5,7 +5,7 @@ from respark.profiling import (
 SchemaProfiler,
 SchemaProfile
 )
-from respark.profiling.table_profiler import TableProfile
+from respark.profiling.profiler_table import TableProfile
 
 employees_schema = T.StructType([
     T.StructField("first_name", T.StringType(), True),
