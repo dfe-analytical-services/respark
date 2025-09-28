@@ -4,6 +4,7 @@ from pyspark.sql import DataFrame, types as T
 from .base_col import ColumnProfile
 from .string_col import profile_string_column
 from .numeric_col import profile_numerical_column
+from .date_col import profile_date_column
 
 type_dispatch = {
     T.StringType: profile_string_column,
@@ -11,6 +12,7 @@ type_dispatch = {
     T.LongType: profile_numerical_column,
     T.FloatType: profile_numerical_column,
     T.DoubleType: profile_numerical_column,
+    T.DateType: profile_date_column
 }
 
 @dataclass(slots=True)
