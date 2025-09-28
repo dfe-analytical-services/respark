@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "respark"
-version = "0.0.3"
+version = "0.0.4"
 description = "Generate privacy‑safe synthetic data from production Spark DataFrames"
 readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.12"
