@@ -16,6 +16,7 @@ type_dispatch = {
 @dataclass(slots=True)
 class TableProfile:
     name: str
+    row_count: int
     columns: Dict[str, ColumnProfile] = field(default_factory=dict)
 
 
@@ -35,6 +36,7 @@ def profile_table(df: DataFrame, table_name: str) -> TableProfile:
 
     return TableProfile(
         name=table_name,
+        row_count=df.count(),
         columns=col_profiles
     )
 
