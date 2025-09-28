@@ -59,7 +59,7 @@ jobs:
 
     - name: Run tests with coverage gate
       run: |
-        pytest --cov-report=xm
+        pytest --cov-report=xml
 
     - name: Upload coverage artifact (optional)
       if: always()
