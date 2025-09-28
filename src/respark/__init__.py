@@ -1,10 +1,6 @@
-from .schema_inspector import (
-    SchemaInspector,
-    SchemaModel,
-    TableInfo,
-    ColumnInfo,
-    TypeNormaliser,
-)
+from .profiling import SchemaProfile, SchemaProfiler
 
-__all__ = ["SchemaInspector", "SchemaModel",
-           "TableInfo", "ColumnInfo", "TypeNormaliser"]
+__all__ = [
+    "SchemaProfiler",
+    "SchemaProfile"
+]
