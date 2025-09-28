@@ -3,7 +3,7 @@ from datetime import date
 from pyspark.sql import types as T
 from respark.profiling import (
     StringColumnProfile,
-    NumericalColumnProfile,
+    NumericColumnProfile,
     DateColumnProfile,
     profile_string_column,
     profile_numerical_column,
@@ -47,7 +47,7 @@ def test_creates_valid_NumericalProfile(spark):
     sample_df = spark.createDataFrame(sample_data, sample_schema)
     department_id_profile = profile_numerical_column(sample_df, "department_id")
 
-    assert isinstance(department_id_profile, NumericalColumnProfile)
+    assert isinstance(department_id_profile, NumericColumnProfile)
     assert department_id_profile.name == "department_id"
     assert department_id_profile.normalised_type == "numeric"
     assert department_id_profile.nullable is False

@@ -1,9 +1,12 @@
 from dataclasses import dataclass, field
-from typing import Dict, Union
+from typing import Dict
 from pyspark.sql import DataFrame, types as T
-from .base_col import ColumnProfile
-from .string_col import profile_string_column
-from .numeric_col import profile_numerical_column
+from .profiler_column import (
+    BaseColumnProfile,
+    profile_string_column,
+    profile_numerical_column,
+    profile_date_column,
+)
 
 type_dispatch = {
     T.StringType: profile_string_column,
@@ -11,13 +14,14 @@ type_dispatch = {
     T.LongType: profile_numerical_column,
     T.FloatType: profile_numerical_column,
     T.DoubleType: profile_numerical_column,
+    T.DateType: profile_date_column
 }
 
 @dataclass(slots=True)
 class TableProfile:
     name: str
     row_count: int
-    columns: Dict[str, ColumnProfile] = field(default_factory=dict)
+    columns: Dict[str, BaseColumnProfile] = field(default_factory=dict)
 
 
 def profile_table(df: DataFrame, table_name: str) -> TableProfile:

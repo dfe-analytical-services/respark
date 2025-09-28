@@ -1,6 +1,11 @@
-from .base_col import ColumnProfile
-from .string_col import StringColumnProfile, profile_string_column
-from .numeric_col import NumericalColumnProfile, profile_numerical_column
-from .date_col import DateColumnProfile, profile_date_column
-from .table_profiler import TableProfile, profile_table
-from .schema_profiler import SchemaProfile, SchemaProfiler
+from .profiler_column import (
+    BaseColumnProfile,
+    StringColumnProfile,
+    NumericColumnProfile,
+    DateColumnProfile,
+    profile_string_column,
+    profile_numerical_column,
+    profile_date_column,
+)
+from .profiler_table import TableProfile, profile_table
+from .profiler_schema import SchemaProfile, SchemaProfiler
