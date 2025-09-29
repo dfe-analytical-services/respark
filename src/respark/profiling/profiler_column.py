@@ -3,7 +3,7 @@ from datetime import date
 from typing import Dict, Any, Optional
 from abc import ABC, abstractmethod
 
-from pyspark.sql import DataFrame, Row, functions as F
+from pyspark.sql import DataFrame,  functions as F, types as T
 
 # Parent Base Class
 @dataclass(slots=True)
@@ -17,6 +17,7 @@ class BaseColumnProfile(ABC):
 
     @abstractmethod
     def type_specific_params(self) -> Dict[str, Any]: ...
+
 
 # Date Type Profiling
 @dataclass(slots=True)

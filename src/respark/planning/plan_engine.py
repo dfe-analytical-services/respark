@@ -1,11 +1,13 @@
 from typing import Dict, Any, List
 from dataclasses import dataclass, field, asdict
+from pyspark.sql import types as T
 from respark.profiling import SchemaProfile
 
 
 @dataclass
 class ColumnGenerationPlan:
     name: str
+    data_type: str
     rule: str
     params: Dict[str, Any] = field(default_factory=dict)
 
@@ -32,6 +34,7 @@ def make_generation_plan(schema_profile: SchemaProfile) -> SchemaGenerationPlan:
         for _, column_profile in table_profile.columns.items():
             col_plans.append(ColumnGenerationPlan(
                 name=column_profile.name,
+                data_type=column_profile.normalised_type,
                 rule=column_profile.default_rule(),
                 params=column_profile.type_specific_params()
             ))
