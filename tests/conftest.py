@@ -1,7 +1,14 @@
 import pytest
 from typing import cast
-from pyspark.sql import SparkSession
-
+from pyspark.sql import SparkSession, DataFrame
+from data.mock_production_tables import(
+    employees_schema,
+    employees_rows,
+    departments_schema,
+    departments_rows,
+    invalid_employees_schema,
+    invalid_employees_rows
+)
 
 @pytest.fixture(scope="session")
 def spark():
@@ -19,3 +26,15 @@ def spark():
         yield spark
     finally:
         spark.stop()
+
+@pytest.fixture(scope="session")
+def employees_df(spark: SparkSession) -> DataFrame:
+    return spark.createDataFrame(employees_rows, schema=employees_schema)
+
+@pytest.fixture(scope="session")
+def departments_df(spark: SparkSession) -> DataFrame:
+    return spark.createDataFrame(departments_rows, schema=departments_schema)
+
+@pytest.fixture(scope="session")
+def invalid_employees_df(spark: SparkSession) -> DataFrame:
+    return spark.createDataFrame(invalid_employees_rows, schema=invalid_employees_schema)
