@@ -1,1 +1,1 @@
-from .executor import SynthSchemaGenerator
+from .executor import SynthSchemaGenerator, SynthTableGenerator
