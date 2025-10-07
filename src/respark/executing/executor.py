@@ -37,7 +37,7 @@ class SynthSchemaGenerator:
 
         for table_plan in schema_gen_plan.tables:
             table_generator = SynthTableGenerator(
-                spark=self.spark,
+                spark_session=self.spark,
                 table_gen_plan=table_plan,
                 seed=self.seed,
             )
@@ -51,19 +51,19 @@ class SynthSchemaGenerator:
 class SynthTableGenerator:
     def __init__(
         self,
-        spark: SparkSession,
+        spark_session: SparkSession,
         table_gen_plan: TableGenerationPlan,
         seed: int = 18151210,
     ):
-        self.spark = spark
+        self.spark = spark_session
         self.table_gen_plan = table_gen_plan
         self.table_name = table_gen_plan.name
         self.row_count = table_gen_plan.row_count
         self.seed = seed
 
     def generate_synthetic_table(self):
-        snyth_df = self.spark.range(0, self.row_count, 1)
-        snyth_df = snyth_df.withColumnRenamed("id", "__row_idx")
+        synth_df = self.spark.range(0, self.row_count, 1)
+        synth_df = synth_df.withColumnRenamed("id", "__row_idx")
 
         for column_plan in self.table_gen_plan.columns:
             col_seed = _create_stable_seed(
@@ -85,7 +85,7 @@ class SynthTableGenerator:
             target_dtype = _str_to_spark_type(column_plan.data_type)
             col_expr = col_expr.cast(target_dtype)
 
-            snyth_df = snyth_df.withColumn(column_plan.name, col_expr)
+            synth_df = synth_df.withColumn(column_plan.name, col_expr)
 
         ordered_cols = [cgp.name for cgp in self.table_gen_plan.columns]
-        return snyth_df.select("__row_idx", *ordered_cols).drop("__row_idx")
+        return synth_df.select("__row_idx", *ordered_cols).drop("__row_idx")
