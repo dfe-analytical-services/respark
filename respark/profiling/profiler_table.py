@@ -14,8 +14,9 @@ type_dispatch = {
     T.LongType: profile_numerical_column,
     T.FloatType: profile_numerical_column,
     T.DoubleType: profile_numerical_column,
-    T.DateType: profile_date_column
+    T.DateType: profile_date_column,
 }
+
 
 @dataclass(slots=True)
 class TableProfile:
@@ -36,11 +37,8 @@ def profile_table(df: DataFrame, table_name: str) -> TableProfile:
         if profiler_fn:
             col_profiles[col_name] = profiler_fn(df, col_name)
         else:
-            raise TypeError(f"Unsupported column type for '{col_name}': {spark_dtype.typeName()}")
+            raise TypeError(
+                f"Unsupported column type for '{col_name}': {spark_dtype.typeName()}"
+            )
 
-    return TableProfile(
-        name=table_name,
-        row_count=df.count(),
-        columns=col_profiles
-    )
-
+    return TableProfile(name=table_name, row_count=df.count(), columns=col_profiles)

@@ -1,7 +1,10 @@
 import pytest
 from datetime import date
 from pyspark.sql import functions as F, types as T
-from respark.planning.rules_engine import get_rule, GENERATION_RULES_REGISTRY
+from respark.planning.generation_rules import (
+    get_generation_rule,
+    GENERATION_RULES_REGISTRY,
+)
 
 TEST_SEED = 2025
 
@@ -13,14 +16,14 @@ def test_known_rules_are_registered():
     assert "random_string" in GENERATION_RULES_REGISTRY
 
 
-def test_get_rule_unknown_raises():
+def test_get_generation_rule_unknown_raises():
     with pytest.raises(ValueError):
-        get_rule("nope")
+        get_generation_rule("nope")
 
 
 # random_date rule tests
 def test_random_date_bounds_and_type(spark):
-    rule = get_rule(
+    rule = get_generation_rule(
         "random_date",
         __row_idx=F.col("id"),
         __seed=TEST_SEED,
@@ -40,7 +43,7 @@ def test_random_date_bounds_and_type(spark):
 
 # random_int rule tests
 def test_random_int_default_bounds_and_type(spark):
-    rule = get_rule("random_int", __row_idx=F.col("id"), __seed=TEST_SEED)
+    rule = get_generation_rule("random_int", __row_idx=F.col("id"), __seed=TEST_SEED)
     df = spark.range(1000).select(rule.generate_column().alias("test_int"))
 
     assert isinstance(df.schema["test_int"].dataType, T.IntegerType)
@@ -53,7 +56,7 @@ def test_random_int_default_bounds_and_type(spark):
 
 
 def test_random_int_custom_inclusive_bounds(spark):
-    rule = get_rule(
+    rule = get_generation_rule(
         "random_int", __row_idx=F.col("id"), __seed=TEST_SEED, min_value=1, max_value=5
     )
     df = spark.range(2000).select(rule.generate_column().alias("random_int"))
@@ -64,7 +67,7 @@ def test_random_int_custom_inclusive_bounds(spark):
 
 # random_string rule tests
 def test_random_string_length_and_charset(spark):
-    rule = get_rule(
+    rule = get_generation_rule(
         "random_string",
         __row_idx=F.col("id"),
         __seed=TEST_SEED,

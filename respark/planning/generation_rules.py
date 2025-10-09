@@ -28,7 +28,7 @@ class GenerationRule(ABC):
 GENERATION_RULES_REGISTRY = {}
 
 
-def register_rule(rule_name: str):
+def register_generation_rule(rule_name: str):
     """
     Decorator to register a generation rule class
     """
@@ -40,7 +40,7 @@ def register_rule(rule_name: str):
     return wrapper
 
 
-def get_rule(rule_name: str, **params) -> GenerationRule:
+def get_generation_rule(rule_name: str, **params) -> GenerationRule:
     """
     Factory to instantiate a rule by name
     """
@@ -50,7 +50,7 @@ def get_rule(rule_name: str, **params) -> GenerationRule:
 
 
 # Date Rules
-@register_rule("random_date")
+@register_generation_rule("random_date")
 class RandomDateRule(GenerationRule):
     def generate_column(self) -> Column:
         min_date_str = self.params.get("min_date", "2000-01-01")
@@ -66,7 +66,7 @@ class RandomDateRule(GenerationRule):
 
 
 # Numeric Rules
-@register_rule("random_int")
+@register_generation_rule("random_int")
 class RandomIntRule(GenerationRule):
     def generate_column(self) -> Column:
         min_value = self.params.get("min_value", 0)
@@ -78,7 +78,7 @@ class RandomIntRule(GenerationRule):
 
 
 # String Rules
-@register_rule("random_string")
+@register_generation_rule("random_string")
 class RandomStringRule(GenerationRule):
     def generate_column(self) -> Column:
         min_length = self.params.get("min_length", 0)
