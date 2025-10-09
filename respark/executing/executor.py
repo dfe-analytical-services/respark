@@ -1,6 +1,10 @@
 from typing import Dict, Any
 import hashlib
-from respark.planning import SchemaGenerationPlan, TableGenerationPlan, get_rule
+from respark.planning import (
+    SchemaGenerationPlan,
+    TableGenerationPlan,
+    get_generation_rule,
+)
 from pyspark.sql import SparkSession, DataFrame, Column, functions as F, types as T
 
 
@@ -79,7 +83,7 @@ class SynthTableGenerator:
                 "__row_idx": F.col("__row_idx"),
             }
 
-            rule = get_rule(column_plan.rule, **exec_params)
+            rule = get_generation_rule(column_plan.rule, **exec_params)
             col_expr: Column = rule.generate_column()
 
             target_dtype = _str_to_spark_type(column_plan.data_type)

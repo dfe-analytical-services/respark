@@ -1,9 +1,10 @@
 import pytest
-from typing import cast
+from typing import Dict, cast
 from pyspark.sql import SparkSession, DataFrame
 from respark.profiling import SchemaProfiler, SchemaProfile
 from respark.planning import SchemaGenerationPlan, make_generation_plan
-from data.mock_production_tables import (
+from respark.executing import SynthSchemaGenerator
+from .data.mock_production_tables import (
     employees_schema,
     employees_rows,
     departments_schema,
@@ -61,3 +62,9 @@ def mock_schema_profile(employees_df, departments_df) -> SchemaProfile:
 @pytest.fixture(scope="session")
 def mock_schema_gen_plan(mock_schema_profile) -> SchemaGenerationPlan:
     return make_generation_plan(mock_schema_profile)
+
+
+@pytest.fixture(scope="session")
+def mock_synth_schema(spark, mock_schema_gen_plan) -> Dict[str, DataFrame]:
+    mock_schema_generator = SynthSchemaGenerator(spark)
+    return mock_schema_generator.generate_synthetic_schema(spark, mock_schema_gen_plan)

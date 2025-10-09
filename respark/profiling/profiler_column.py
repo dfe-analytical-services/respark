@@ -3,7 +3,8 @@ from datetime import date
 from typing import Dict, Any, Optional
 from abc import ABC, abstractmethod
 
-from pyspark.sql import DataFrame,  functions as F, types as T
+from pyspark.sql import DataFrame, functions as F, types as T
+
 
 # Parent Base Class
 @dataclass(slots=True)
@@ -40,9 +41,7 @@ def profile_date_column(df: DataFrame, col_name: str) -> DateColumnProfile:
     nullable = field.nullable
 
     col_profile = (
-        df
-        .select(F.col(col_name).alias("val"))
-        .agg(
+        df.select(F.col(col_name).alias("val")).agg(
             F.min("val").alias("min_date"),
             F.max("val").alias("max_date"),
         )
@@ -58,6 +57,7 @@ def profile_date_column(df: DataFrame, col_name: str) -> DateColumnProfile:
         max_date=col_stats.get("max_date"),
     )
 
+
 # Numeric Type Profiling
 @dataclass(slots=True)
 class NumericColumnProfile(BaseColumnProfile):
@@ -72,17 +72,16 @@ class NumericColumnProfile(BaseColumnProfile):
         return {
             "min_value": self.min_value,
             "max_value": self.max_value,
-            "mean_value": self.mean_value
-             }
+            "mean_value": self.mean_value,
+        }
+
 
 def profile_numerical_column(df: DataFrame, col_name: str) -> NumericColumnProfile:
     field = df.schema[col_name]
     nullable = field.nullable
 
     col_profile = (
-        df
-        .select(F.col(col_name).alias("val"))
-        .agg(
+        df.select(F.col(col_name).alias("val")).agg(
             F.min("val").alias("min_value"),
             F.max("val").alias("max_value"),
             F.avg("val").alias("mean_value"),
@@ -100,6 +99,7 @@ def profile_numerical_column(df: DataFrame, col_name: str) -> NumericColumnProfi
         mean_value=col_stats.get("mean_value"),
     )
 
+
 # String Type Profiling
 
 
@@ -116,8 +116,8 @@ class StringColumnProfile(BaseColumnProfile):
         return {
             "min_length": self.min_length,
             "max_length": self.max_length,
-            "mean_length": self.mean_length
-             }
+            "mean_length": self.mean_length,
+        }
 
 
 def profile_string_column(df: DataFrame, col_name: str) -> StringColumnProfile:
@@ -127,9 +127,7 @@ def profile_string_column(df: DataFrame, col_name: str) -> StringColumnProfile:
     length_col = F.length(F.col(col_name))
 
     col_profile = (
-        df
-        .select(length_col.alias("len"))
-        .agg(
+        df.select(length_col.alias("len")).agg(
             F.min("len").alias("min_length"),
             F.max("len").alias("max_length"),
             F.avg("len").alias("mean_length"),

@@ -13,4 +13,3 @@ def test_create_stable_seed_is_deterministic():
 
     assert first_run == second_run
     assert first_run != third_run
-

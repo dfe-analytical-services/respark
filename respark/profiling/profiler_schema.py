@@ -4,7 +4,7 @@ from pyspark.sql import DataFrame
 
 from .profiler_table import TableProfile, profile_table
 
-  
+
 @dataclass(slots=True)
 class SchemaProfile:
     tables: Dict[str, TableProfile] = field(default_factory=dict)
@@ -13,12 +13,13 @@ class SchemaProfile:
         return asdict(self)
 
 
-
 class SchemaProfiler:
     def __init__(self, default_single_name: str = "table") -> None:
         self._default_single_name = default_single_name
 
-    def profile_schema(self, tables: Union[DataFrame, Dict[str, DataFrame]]) -> SchemaProfile:
+    def profile_schema(
+        self, tables: Union[DataFrame, Dict[str, DataFrame]]
+    ) -> SchemaProfile:
         table_map = self._as_table_map(tables, self._default_single_name)
 
         table_profiles: Dict[str, TableProfile] = {}
@@ -27,9 +28,10 @@ class SchemaProfiler:
 
         return SchemaProfile(tables=table_profiles)
 
-
     @staticmethod
-    def _as_table_map(tables: Union[DataFrame, Dict[str, DataFrame]], default_single_name: str) -> Dict[str, DataFrame]:
+    def _as_table_map(
+        tables: Union[DataFrame, Dict[str, DataFrame]], default_single_name: str
+    ) -> Dict[str, DataFrame]:
         if isinstance(tables, DataFrame):
             return {default_single_name: tables}
         if isinstance(tables, dict):
@@ -38,6 +40,3 @@ class SchemaProfiler:
                     raise TypeError("Expected Dict[str, DataFrame]")
             return tables
         raise TypeError("Expected a DataFrame or Dict[str, DataFrame]")
-
-
-   

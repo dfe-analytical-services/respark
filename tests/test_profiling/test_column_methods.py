@@ -4,11 +4,12 @@ from respark.profiling import (
     DateColumnProfile,
     profile_string_column,
     profile_numerical_column,
-    profile_date_column
+    profile_date_column,
 )
 
+
 def test_creates_valid_StringProfile(employees_df):
-    
+
     first_name_profile = profile_string_column(employees_df, "first_name")
 
     assert isinstance(first_name_profile, StringColumnProfile)
@@ -18,6 +19,7 @@ def test_creates_valid_StringProfile(employees_df):
     assert first_name_profile.min_length == 3
     assert first_name_profile.max_length == 6
     assert first_name_profile.mean_length == 4.3
+
 
 def test_creates_valid_NumericalProfile(employees_df):
 
