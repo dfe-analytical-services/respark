@@ -1,7 +1,7 @@
 from typing import Dict, Any, List
 from dataclasses import dataclass, field, asdict
 from pyspark.sql import types as T
-from respark.profiling import SchemaProfile
+from respark.layer_profile import SchemaProfile
 
 
 @dataclass
