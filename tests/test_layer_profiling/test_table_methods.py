@@ -1,8 +1,8 @@
 import pytest
 from pyspark.sql import types as T
-from respark.profiling import (
+from respark.layer_profile import (
     StringColumnProfile,
-    NumericColumnProfile,
+    IntegralColumnProfile,
     TableProfile,
     profile_table,
 )
@@ -17,7 +17,7 @@ def test_profilling_supported_table(employees_df):
     )
     assert isinstance(employees_table_profile.columns["last_name"], StringColumnProfile)
     assert isinstance(
-        employees_table_profile.columns["department_id"], NumericColumnProfile
+        employees_table_profile.columns["department_id"], IntegralColumnProfile
     )
     assert employees_table_profile.row_count == 10
 

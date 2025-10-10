@@ -1,8 +1,8 @@
 import pytest
 from typing import Dict
 from pyspark.sql import types as T
-from respark.profiling import SchemaProfiler, SchemaProfile
-from respark.profiling.profiler_table import TableProfile
+from respark.layer_profile import SchemaProfiler, SchemaProfile
+from respark.layer_profile.profiler_table import TableProfile
 
 
 def test_schema_profiling_one_schema(employees_df):

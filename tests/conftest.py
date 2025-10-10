@@ -1,7 +1,7 @@
 import pytest
 from typing import Dict, cast
 from pyspark.sql import SparkSession, DataFrame
-from respark.profiling import SchemaProfiler, SchemaProfile
+from respark.layer_profile import SchemaProfiler, SchemaProfile
 from respark.planning import SchemaGenerationPlan, make_generation_plan
 from respark.executing import SynthSchemaGenerator
 from .data.mock_production_tables import (

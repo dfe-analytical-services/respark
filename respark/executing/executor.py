@@ -18,7 +18,7 @@ def _create_stable_seed(base_seed: int, *tokens: Any) -> int:
 
 
 def _str_to_spark_type(type_as_str: str) -> T.DataType:
-    if type_as_str == "numeric":
+    if type_as_str == "int":
         return T.IntegerType()
     if type_as_str == "string":
         return T.StringType()

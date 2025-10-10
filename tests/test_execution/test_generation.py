@@ -6,7 +6,7 @@ from respark.executing.executor import _str_to_spark_type
 
 def test_str_to_spark_type_valid():
     assert isinstance(_str_to_spark_type("string"), T.StringType)
-    assert isinstance(_str_to_spark_type("numeric"), T.IntegerType)
+    assert isinstance(_str_to_spark_type("int"), T.IntegerType)
     assert isinstance(_str_to_spark_type("date"), T.DateType)
 
 

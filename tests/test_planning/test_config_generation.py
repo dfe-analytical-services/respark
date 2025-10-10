@@ -1,4 +1,4 @@
-from respark.profiling import SchemaProfiler
+from respark.layer_profile import SchemaProfiler
 from respark.planning import SchemaGenerationPlan, make_generation_plan
 
 
