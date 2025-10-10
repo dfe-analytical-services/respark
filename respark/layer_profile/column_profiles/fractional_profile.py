@@ -9,7 +9,6 @@ class FractionalParams(TypedDict):
     min_value: Optional[float]
     max_value: Optional[float]
     mean_value: Optional[float]
-    spark_subtype: Literal["float", "double"]
 
 
 # Fractional Column Profile Class
@@ -23,7 +22,7 @@ class FractionalColumnProfile(BaseColumnProfile[FractionalParams]):
     def default_rule(self) -> str:
         return "random_float"
 
-    def type_specific_params(self) -> Dict[str, Any]:
+    def type_specific_params(self) -> FractionalParams:
         return {
             "min_value": self.min_value,
             "max_value": self.max_value,
@@ -56,7 +55,7 @@ def profile_fractional_column(df: DataFrame, col_name: str) -> FractionalColumnP
 
     return FractionalColumnProfile(
         name=col_name,
-        normalised_type="float",
+        normalised_type="numeric",
         nullable=nullable,
         spark_subtype=spark_subtype,
         min_value=col_stats.get("min_value"),

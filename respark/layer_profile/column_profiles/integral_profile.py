@@ -60,7 +60,7 @@ def profile_integral_column(df: DataFrame, col_name: str) -> IntegralColumnProfi
 
     return IntegralColumnProfile(
         name=col_name,
-        normalised_type="int",
+        normalised_type="numeric",
         nullable=nullable,
         spark_subtype=spark_subtype,
         min_value=col_stats.get("min_value"),

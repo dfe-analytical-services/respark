@@ -3,6 +3,7 @@ from respark.layer_profile import (
     profile_string_column,
 )
 
+
 def test_creates_valid_StringProfile(employees_df):
 
     first_name_profile = profile_string_column(employees_df, "first_name")

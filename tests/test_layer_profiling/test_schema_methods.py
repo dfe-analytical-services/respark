@@ -1,6 +1,5 @@
 import pytest
 from typing import Dict
-from pyspark.sql import types as T
 from respark.layer_profile import SchemaProfiler, SchemaProfile
 from respark.layer_profile.profiler_table import TableProfile
 

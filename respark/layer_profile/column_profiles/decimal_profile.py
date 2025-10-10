@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import TypedDict, Optional, cast
+from typing import TypedDict, Literal, Optional, cast
 from pyspark.sql import DataFrame, functions as F, types as T
 from .base_profile import BaseColumnProfile
 
@@ -12,6 +12,7 @@ class DecimalParams(TypedDict):
     min_value: Optional[str]
     max_value: Optional[str]
     mean_value: Optional[float]
+    
 
 
 # Decimal Column Profile Class
@@ -22,6 +23,7 @@ class DecimalColumnProfile(BaseColumnProfile[DecimalParams]):
     min_value: Optional[Decimal] = None
     max_value: Optional[Decimal] = None
     mean_value: Optional[float] = None
+    spark_subtype: Literal["decimal"] = "decimal"
 
     def default_rule(self) -> str:
         return "random_decimal"
@@ -46,6 +48,7 @@ def profile_decimal_column(df: DataFrame, col_name: str) -> DecimalColumnProfile
     dec_data_type = cast(T.DecimalType, data_type)
 
     nullable = field.nullable
+    spark_subtype = "decimal"
     precision = dec_data_type.precision
     scale = dec_data_type.scale
 
@@ -71,8 +74,9 @@ def profile_decimal_column(df: DataFrame, col_name: str) -> DecimalColumnProfile
 
     return DecimalColumnProfile(
         name=col_name,
-        normalised_type="decimal",
+        normalised_type="numeric",
         nullable=nullable,
+        spark_subtype=spark_subtype,
         precision=precision,
         scale=scale,
         min_value=min_value,
