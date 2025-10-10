@@ -3,6 +3,7 @@ from typing import Dict
 from pyspark.sql import DataFrame, types as T
 from .column_profiles import (
     BaseColumnProfile,
+    profile_boolean_column,
     profile_date_column,
     profile_decimal_column,
     profile_fractional_column,
@@ -11,6 +12,7 @@ from .column_profiles import (
 )
 
 type_dispatch = {
+    T.BooleanType: profile_boolean_column,
     T.DoubleType: profile_fractional_column,
     T.DecimalType: profile_decimal_column,
     T.DateType: profile_date_column,

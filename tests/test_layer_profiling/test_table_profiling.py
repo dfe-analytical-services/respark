@@ -5,6 +5,7 @@ from respark.layer_profile import (
     DateColumnProfile,
     DecimalColumnProfile,
     FractionalColumnProfile,
+    BooleanColumnProfile,
     TableProfile,
     profile_table,
 )
@@ -23,6 +24,9 @@ def test_profilling_supported_tables(employees_df, departments_df, sales_df):
     assert isinstance(employees_table_profile.columns["last_name"], StringColumnProfile)
     assert isinstance(
         employees_table_profile.columns["department_id"], IntegralColumnProfile
+    )
+    assert isinstance(
+        employees_table_profile.columns["is_current"], BooleanColumnProfile
     )
     assert employees_table_profile.row_count == 10
 

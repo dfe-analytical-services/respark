@@ -10,35 +10,27 @@ employees_schema = T.StructType(
         T.StructField("first_name", T.StringType(), False),
         T.StructField("last_name", T.StringType(), False),
         T.StructField("department_id", T.IntegerType(), False),
+        T.StructField("is_current", T.BooleanType(), False),
     ]
 )
 
 employees_rows = [
-    (199756800, "Ben", "Carter", 1),
-    (327628800, "Mia", "Turner", 2),
-    (175132800, "Noah", "Phillips", 3),
+    (199756800, "Ben", "Carter", 1, True),
+    (327628800, "Mia", "Turner", 2, True),
+    (175132800, "Noah", "Phillips", 3, True),
     (
         188870400,
         "Freya",
         "Watson",
         4,
+        True,
     ),
-    (
-        418176000,
-        "James",
-        "Hughes",
-        5,
-    ),
-    (
-        103680000,
-        "Evie",
-        "Cole",
-        1,
-    ),
-    (556531200, "Theo", "Morris", 2),
-    (505958400, "Grace", "Reed", 3),
-    (852076800, "Archie", "Foster", 4),
-    (1410912000, "Ella", "Chapman", 5),
+    (418176000, "James", "Hughes", 5, True),
+    (103680000, "Evie", "Cole", 1, False),
+    (556531200, "Theo", "Morris", 2, False),
+    (505958400, "Grace", "Reed", 3, True),
+    (852076800, "Archie", "Foster", 4, False),
+    (1410912000, "Ella", "Chapman", 5, True),
 ]
 
 # Sales Table: Mock table of sensitive sales data

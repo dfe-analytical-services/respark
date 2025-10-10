@@ -12,7 +12,6 @@ class DecimalParams(TypedDict):
     min_value: Optional[str]
     max_value: Optional[str]
     mean_value: Optional[float]
-    
 
 
 # Decimal Column Profile Class
