@@ -2,7 +2,7 @@ from datetime import date
 from pyspark.sql import Row
 
 
-from respark.assurance.inspect_privacy import ColumnMatchesCheck, PrivacyParams
+from respark.layer_assurance.inspect_privacy import ColumnMatchesCheck, PrivacyParams
 
 
 def test_ColumnMatchesCheck_passes_valid_schemas(

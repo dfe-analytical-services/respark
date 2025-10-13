@@ -1,4 +1,4 @@
-from respark.assurance.inspect_structure import (
+from respark.layer_assurance.inspect_structure import (
     SchemaStructureCheck,
     SchemaStructureParams,
 )
