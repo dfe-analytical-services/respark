@@ -2,7 +2,7 @@ import pytest
 from typing import Dict, cast
 from pyspark.sql import SparkSession, DataFrame
 from respark.layer_profile import SchemaProfiler, SchemaProfile
-from respark.layer_configure import SchemaGenerationPlan, make_generation_plan
+from respark.layer_configure import SchemaGenerationPlan, create_generation_plan
 from respark.layer_execute import SynthSchemaGenerator
 from .data import (
     employees_schema,
@@ -69,7 +69,7 @@ def mock_schema_profile(employees_df, departments_df, sales_df) -> SchemaProfile
 
 @pytest.fixture(scope="session")
 def mock_schema_gen_plan(mock_schema_profile) -> SchemaGenerationPlan:
-    return make_generation_plan(mock_schema_profile)
+    return create_generation_plan(mock_schema_profile)
 
 
 @pytest.fixture(scope="session")

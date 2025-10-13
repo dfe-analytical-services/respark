@@ -5,7 +5,7 @@ from respark.layer_configure import (
     get_generation_rule,
     GENERATION_RULES_REGISTRY,
 )
-from respark.layer_configure.configuration_rules.random_helpers import TYPE_BOUNDS
+from respark.layer_configure.generation_rules.random_helpers import TYPE_BOUNDS
 
 TEST_SEED = 2025
 
