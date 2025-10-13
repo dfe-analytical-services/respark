@@ -25,7 +25,7 @@ class BaseFractionalRule(GenerationRule):
         max_value = float(self.params.get("max_value", default_max))
 
         rng = self.rng()
-        u = rng.u01(self.spark_subtype)
+        u = rng.uniform_01_double(self.spark_subtype)
         col = F.lit(min_value) + u * F.lit(max_value - min_value)
         return col.cast(TYPE_CAST_FRAC[self.spark_subtype])
 

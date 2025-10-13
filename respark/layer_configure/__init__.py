@@ -6,4 +6,3 @@ from .plan_engine import (
 )
 
 from .configuration_rules import get_generation_rule, GENERATION_RULES_REGISTRY
-

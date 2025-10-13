@@ -13,7 +13,7 @@ class RandomStringRule(GenerationRule):
 
         rng = self.rng()
 
-        length = rng.randint(min_length, max_length, "len")
+        length = rng.rand_int(min_length, max_length, "len")
         charset_arr = F.array([F.lit(c) for c in charset])
 
         pos_seq = F.sequence(F.lit(0), F.lit(max_length - 1))

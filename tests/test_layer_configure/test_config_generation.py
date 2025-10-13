@@ -2,16 +2,14 @@ from respark.layer_profile import SchemaProfiler
 from respark.layer_configure import SchemaGenerationPlan, make_generation_plan
 
 
-def test_generation_plan_infers_rules_and_params(employees_df, departments_df, sales_df):
+def test_generation_plan_infers_rules_and_params(
+    employees_df, departments_df, sales_df
+):
 
     # Generate test profile and proposed generation plan
     profiler = SchemaProfiler()
     schema_profile = profiler.profile_schema(
-        {
-            "employees": employees_df,
-            "departments": departments_df,
-            "sales" : sales_df
-        }
+        {"employees": employees_df, "departments": departments_df, "sales": sales_df}
     )
     plan = make_generation_plan(schema_profile)
 
@@ -48,16 +46,13 @@ def test_generation_plan_infers_rules_and_params(employees_df, departments_df, s
         "delivery_distance_miles": "random_double",
         "customer_feedback_score": "random_float",
     }
-    
 
     # Check String Params
     assert emp_cols["first_name"].params.get("min_length") == 3
     assert emp_cols["first_name"].params.get("max_length") == 6
 
-
     assert dep_cols["department_id"].params.get("min_value") == 1
     assert dep_cols["department_id"].params.get("max_value") == 5
-
 
     # Test .to_dict()
     as_dict = plan.to_dict()

@@ -1,6 +1,31 @@
-from typing import Any, Iterable, List, Union
-from pyspark.sql import Column, functions as F
+from typing import Any, List, Union
+from pyspark.sql import Column, functions as F, types as T
 
+
+TYPE_BITS = {
+    "byte": 8,
+    "short": 16,
+    "int": 32,
+    "long": 64,
+}
+
+TYPE_CAST = {
+    "byte": T.ByteType(),
+    "short": T.ShortType(),
+    "int": T.IntegerType(),
+    "long": T.LongType(),
+}
+
+TYPE_BOUNDS = {}
+
+for spark_type, bits in TYPE_BITS.items():
+
+    num_bits: int = TYPE_BITS[spark_type]
+    min_value = -(1 << (bits - 1))
+    max_value = (1 << (bits - 1)) - 1
+    TYPE_BOUNDS[spark_type] = {}
+    TYPE_BOUNDS[spark_type]["min_value"] = min_value
+    TYPE_BOUNDS[spark_type]["max_value"] = max_value
 
 # Constants used for building IEEE-754 doubles with ~53 bits of precision.
 _U53_INT = 1 << 53
@@ -31,9 +56,9 @@ class RNG:
         parts: List[Column] = [F.lit(self.seed)]
         parts.extend(_to_col(s) for s in salt)
         parts.append(self.row_idx)
-        return F.xxhash64(*parts)  # returns a signed 64-bit integer Column
+        return F.xxhash64(*parts)
 
-    def u01(self, *salt: Any) -> Column:
+    def uniform_01_double(self, *salt: Any) -> Column:
         """
         Uniform double in [0, 1) with ~53 bits of precision.
         Derived by taking the lower 53 bits of the 64-bit hash.
@@ -42,25 +67,28 @@ class RNG:
             "double"
         )
 
-    def randint(self, low: int, high: int, *salt: Any) -> Column:
+    def rand_long(self, min_value: int, max_value: int, *salt: Any) -> Column:
         """
-        Uniform integer in the inclusive range [low, high], returned as a LONG Column.
-        (Callers can cast down to int/short/byte safely after ensuring bounds.)
+        Takes a min and max value as limits, returns a column of randomly generated LongType
         """
-        low_i = int(low)
-        high_i = int(high)
-        if high_i < low_i:
-            raise ValueError(f"randint: high ({high}) < low ({low}).")
 
-        # span = high - low + 1  (as long)
-        span = high_i - low_i + 1
+        span = max_value - min_value + 1
         if span <= 0:
-            # Protect against overflow if high - low + 1 wraps (very large values)
-            # This is extremely unlikely for sane ranges, but we guard anyway.
-            raise ValueError(f"randint: invalid span computed from [{low}, {high}].")
+            raise ValueError(
+                f"randint: invalid span computed from [{min_value}, {max_value}]."
+            )
 
         span_col = F.lit(span).cast("long")
-        return (F.pmod(self._hash64(*salt), span_col) + F.lit(low_i)).cast("long")
+        return F.pmod(self._hash64(*salt), span_col) + F.lit(min_value)
+
+    def rand_int(self, min_value: int, max_value: int, *salt: Any) -> Column:
+        return self.rand_long(min_value, max_value, *salt).cast("int")
+
+    def rand_short(self, min_value: int, max_value: int, *salt: Any) -> Column:
+        return self.rand_long(min_value, max_value, *salt).cast("short")
+
+    def rand_byte(self, min_value: int, max_value: int, *salt: Any) -> Column:
+        return self.rand_long(min_value, max_value, *salt).cast("short")
 
     def choice(self, options: Union[List[Any], Column], *salt: Any) -> Column:
         """

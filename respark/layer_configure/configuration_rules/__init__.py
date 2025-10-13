@@ -10,7 +10,6 @@ from .base_rule import (
 )
 
 
-
 def _auto_import_rules():
     pkg_dir = Path(__file__).parent
     pkg_name = __name__
@@ -20,6 +19,5 @@ def _auto_import_rules():
             continue
         import_module(f"{pkg_name}.{m.name}")
 
+
 _auto_import_rules()
-
-

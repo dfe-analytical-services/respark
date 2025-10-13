@@ -5,6 +5,7 @@ from respark.layer_configure import (
     get_generation_rule,
     GENERATION_RULES_REGISTRY,
 )
+from respark.layer_configure.configuration_rules.random_helpers import TYPE_BOUNDS
 
 TEST_SEED = 2025
 
@@ -51,8 +52,8 @@ def test_random_int_default_bounds_and_type(spark):
     row = df.select(
         F.min("test_int").alias("min_value"), F.max("test_int").alias("max_value")
     ).first()
-    assert row.min_value >= 0
-    assert row.max_value <= 2147483647
+    assert row.min_value >= TYPE_BOUNDS["int"]["min_value"]
+    assert row.max_value <= TYPE_BOUNDS["int"]["max_value"]
 
 
 def test_random_int_custom_inclusive_bounds(spark):

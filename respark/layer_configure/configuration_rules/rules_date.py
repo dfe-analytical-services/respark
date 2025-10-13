@@ -1,5 +1,5 @@
 from datetime import datetime
-from pyspark.sql import Column, functions as F, types as T
+from pyspark.sql import Column, functions as F
 from .base_rule import register_generation_rule, GenerationRule
 
 
@@ -15,5 +15,7 @@ class RandomDateRule(GenerationRule):
         days_range = (max_date - min_date).days
 
         rng = self.rng()
-        offset = rng.randint(0, days_range)
-        return F.date_add(F.to_date(F.lit(min_date_str)), offset).cast(T.DateType())
+
+        start = F.lit(min_date_str).cast("date")
+        offset = rng.rand_int(0, days_range)
+        return F.date_add(start, offset).cast("date")
