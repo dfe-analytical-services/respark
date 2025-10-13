@@ -2,7 +2,7 @@ import pytest
 from typing import Dict, cast
 from pyspark.sql import SparkSession, DataFrame
 from respark.layer_profile import SchemaProfiler, SchemaProfile
-from respark.planning import SchemaGenerationPlan, make_generation_plan
+from respark.layer_configure import SchemaGenerationPlan, make_generation_plan
 from respark.executing import SynthSchemaGenerator
 from .data import (
     employees_schema,

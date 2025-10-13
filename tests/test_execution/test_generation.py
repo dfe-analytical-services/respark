@@ -1,18 +1,4 @@
-import pytest
-from pyspark.sql import types as T
 from respark.executing import SynthSchemaGenerator
-from respark.executing.executor import _str_to_spark_type
-
-
-def test_str_to_spark_type_valid():
-    assert isinstance(_str_to_spark_type("string"), T.StringType)
-    assert isinstance(_str_to_spark_type("int"), T.IntegerType)
-    assert isinstance(_str_to_spark_type("date"), T.DateType)
-
-
-def test_str_to_spark_type_invalid():
-    with pytest.raises(TypeError):
-        _str_to_spark_type("array")
 
 
 def test_synthetic_schema_table_names(spark, mock_schema_gen_plan):

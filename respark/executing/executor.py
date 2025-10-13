@@ -1,6 +1,6 @@
 from typing import Dict, Any
 import hashlib
-from respark.planning import (
+from respark.layer_configure import (
     SchemaGenerationPlan,
     TableGenerationPlan,
     get_generation_rule,
@@ -17,15 +17,16 @@ def _create_stable_seed(base_seed: int, *tokens: Any) -> int:
     return mixed & 0x7FFFFFFFFFFFFFFF
 
 
-def _str_to_spark_type(type_as_str: str) -> T.DataType:
-    if type_as_str == "int":
-        return T.IntegerType()
-    if type_as_str == "string":
-        return T.StringType()
-    if type_as_str == "date":
-        return T.DateType()
-    else:
-        raise TypeError("Unsupported Type")
+TYPE_DISPATCH = {
+    "boolean": T.BooleanType(),
+    "double": T.DoubleType(),
+    "decimal": T.DecimalType(),
+    "date": T.DateType(),
+    "float": T.FloatType(),
+    "int": T.IntegerType(),
+    "long": T.LongType(),
+    "string": T.StringType(),
+}
 
 
 class SynthSchemaGenerator:
@@ -86,7 +87,11 @@ class SynthTableGenerator:
             rule = get_generation_rule(column_plan.rule, **exec_params)
             col_expr: Column = rule.generate_column()
 
-            target_dtype = _str_to_spark_type(column_plan.data_type)
+            try:
+                target_dtype = TYPE_DISPATCH[column_plan.data_type]
+            except KeyError:
+                raise ValueError(f"Unsupported data type: '{column_plan.data_type}' ")
+
             col_expr = col_expr.cast(target_dtype)
 
             synth_df = synth_df.withColumn(column_plan.name, col_expr)

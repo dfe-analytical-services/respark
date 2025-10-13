@@ -1,7 +1,7 @@
 import pytest
 from datetime import date
 from pyspark.sql import functions as F, types as T
-from respark.planning.generation_rules import (
+from respark.layer_configure import (
     get_generation_rule,
     GENERATION_RULES_REGISTRY,
 )

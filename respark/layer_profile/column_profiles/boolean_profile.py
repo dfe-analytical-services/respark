@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Dict, TypedDict, Literal, Any, Optional
+from typing import TypedDict, Literal, Optional
 from pyspark.sql import DataFrame, functions as F, types as T
 from .base_profile import BaseColumnProfile
 
@@ -21,7 +21,7 @@ class BooleanColumnProfile(BaseColumnProfile[BooleanParams]):
     spark_subtype: Literal["boolean"] = "boolean"
 
     def default_rule(self) -> str:
-        return "random_bool"
+        return "random_boolean"
 
     def type_specific_params(self) -> BooleanParams:
         return {

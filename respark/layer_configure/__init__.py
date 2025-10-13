@@ -5,4 +5,5 @@ from .plan_engine import (
     make_generation_plan,
 )
 
-from .generation_rules import get_generation_rule
+from .configuration_rules import get_generation_rule, GENERATION_RULES_REGISTRY
+

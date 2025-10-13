@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from datetime import date
-from typing import Dict, TypedDict, Literal, Any, Optional
-from pyspark.sql import DataFrame, functions as F, types as T
+from typing import ClassVar, TypedDict, Literal, Optional
+from pyspark.sql import DataFrame, functions as F
 from .base_profile import BaseColumnProfile
 
 
@@ -14,9 +14,9 @@ class DateParams(TypedDict):
 # Date Column Profile Class
 @dataclass(slots=True)
 class DateColumnProfile(BaseColumnProfile[DateParams]):
+    spark_subtype: ClassVar[Literal["date"]] = "date"
     min_date: Optional[date] = None
     max_date: Optional[date] = None
-    spark_subtype: Literal["date"] = "date"
 
     def default_rule(self) -> str:
         return "random_date"
@@ -29,9 +29,9 @@ class DateColumnProfile(BaseColumnProfile[DateParams]):
 
 
 def profile_date_column(df: DataFrame, col_name: str) -> DateColumnProfile:
+
     field = df.schema[col_name]
     nullable = field.nullable
-    spark_subtype = "date"
 
     col_profile = (
         df.select(F.col(col_name).alias("val")).agg(
@@ -46,7 +46,6 @@ def profile_date_column(df: DataFrame, col_name: str) -> DateColumnProfile:
         name=col_name,
         normalised_type="date",
         nullable=nullable,
-        spark_subtype=spark_subtype,
         min_date=col_stats.get("min_date"),
         max_date=col_stats.get("max_date"),
     )

@@ -33,6 +33,25 @@ employees_rows = [
     (1410912000, "Ella", "Chapman", 5, True),
 ]
 
+
+# Departments Table: Mock table of non-sensitive lookup data
+# ---
+departments_schema = T.StructType(
+    [
+        T.StructField("department_id", T.IntegerType(), False),
+        T.StructField("department_name", T.StringType(), False),
+    ]
+)
+
+departments_rows = [
+    (1, "HR"),
+    (2, "Finance"),
+    (3, "Engineering"),
+    (4, "Marketing"),
+    (5, "IT"),
+]
+
+
 # Sales Table: Mock table of sensitive sales data
 # ---
 sales_schema = T.StructType(
@@ -56,24 +75,6 @@ sales_rows = [
     (10082167, date(2025, 8, 9), Decimal("765.43"), 89.01, 4.0),
     (10091025, date(2025, 9, 27), Decimal("543.21"), 38.29, 2.3),
     (10100012, date(2025, 10, 18), Decimal("321.89"), 64.78, 3.6),
-]
-
-
-# Departments Table: Mock table of non-sensitive lookup data
-# ---
-departments_schema = T.StructType(
-    [
-        T.StructField("department_id", T.IntegerType(), False),
-        T.StructField("department_name", T.StringType(), False),
-    ]
-)
-
-departments_rows = [
-    (1, "HR"),
-    (2, "Finance"),
-    (3, "Engineering"),
-    (4, "Marketing"),
-    (5, "IT"),
 ]
 
 
