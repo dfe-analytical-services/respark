@@ -1,20 +1,25 @@
 from dataclasses import dataclass, field
 from typing import Dict
 from pyspark.sql import DataFrame, types as T
-from .profiler_column import (
+from .column_profiles import (
     BaseColumnProfile,
-    profile_string_column,
-    profile_numerical_column,
+    profile_boolean_column,
     profile_date_column,
+    profile_decimal_column,
+    profile_fractional_column,
+    profile_integral_column,
+    profile_string_column,
 )
 
 type_dispatch = {
-    T.StringType: profile_string_column,
-    T.IntegerType: profile_numerical_column,
-    T.LongType: profile_numerical_column,
-    T.FloatType: profile_numerical_column,
-    T.DoubleType: profile_numerical_column,
+    T.BooleanType: profile_boolean_column,
+    T.DoubleType: profile_fractional_column,
+    T.DecimalType: profile_decimal_column,
     T.DateType: profile_date_column,
+    T.FloatType: profile_fractional_column,
+    T.IntegerType: profile_integral_column,
+    T.LongType: profile_integral_column,
+    T.StringType: profile_string_column,
 }
 
 

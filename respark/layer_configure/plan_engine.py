@@ -1,7 +1,6 @@
 from typing import Dict, Any, List
 from dataclasses import dataclass, field, asdict
-from pyspark.sql import types as T
-from respark.profiling import SchemaProfile
+from respark.layer_profile import SchemaProfile
 
 
 @dataclass
@@ -38,7 +37,7 @@ def make_generation_plan(schema_profile: SchemaProfile) -> SchemaGenerationPlan:
             col_plans.append(
                 ColumnGenerationPlan(
                     name=column_profile.name,
-                    data_type=column_profile.normalised_type,
+                    data_type=column_profile.spark_subtype,
                     rule=column_profile.default_rule(),
                     params=column_profile.type_specific_params(),
                 )
