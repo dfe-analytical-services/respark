@@ -3,7 +3,7 @@ from typing import Dict, cast
 from pyspark.sql import SparkSession, DataFrame
 from respark.layer_profile import SchemaProfiler, SchemaProfile
 from respark.layer_configure import SchemaGenerationPlan, make_generation_plan
-from respark.executing import SynthSchemaGenerator
+from respark.layer_execute import SynthSchemaGenerator
 from .data import (
     employees_schema,
     employees_rows,
@@ -75,4 +75,4 @@ def mock_schema_gen_plan(mock_schema_profile) -> SchemaGenerationPlan:
 @pytest.fixture(scope="session")
 def mock_synth_schema(spark, mock_schema_gen_plan) -> Dict[str, DataFrame]:
     mock_schema_generator = SynthSchemaGenerator(spark)
-    return mock_schema_generator.generate_synthetic_schema(spark, mock_schema_gen_plan)
+    return mock_schema_generator.generate_synthetic_schema(mock_schema_gen_plan)

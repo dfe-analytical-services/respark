@@ -5,9 +5,13 @@ from respark.assurance.inspect_structure import (
 
 
 def test_SchemaStructureCheck_passes_valid_schemas(
-    employees_df, departments_df, mock_synth_schema
+    employees_df, departments_df, sales_df, mock_synth_schema
 ):
-    source_data = {"employees": employees_df, "departments": departments_df}
+    source_data = {
+        "employees": employees_df,
+        "departments": departments_df,
+        "sales": sales_df,
+    }
     synth_data = mock_synth_schema
 
     params = SchemaStructureParams(source_data=source_data, synth_data=synth_data)

@@ -40,11 +40,11 @@ def test_ColumnMatchesCheck_fails_invalid_schemas(
     }
 
     leaked_prod_row = Row(
+        employee_id=199756800,
         first_name="Ben",
         last_name="Carter",
         department_id=1,
-        start_date=date(2020, 2, 1),
-        salary=29500,
+        is_current=True,
     )
 
     synth_schema = synth_data["employees"].schema

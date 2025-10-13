@@ -35,7 +35,7 @@ class SynthSchemaGenerator:
         self.seed = int(seed)
 
     def generate_synthetic_schema(
-        self, spark: SparkSession, schema_gen_plan: SchemaGenerationPlan
+        self, schema_gen_plan: SchemaGenerationPlan
     ) -> Dict[str, DataFrame]:
 
         synth_schema: Dict[str, DataFrame] = {}
