@@ -1,6 +1,6 @@
 import pytest
 
-from respark.layer_profile import BooleanColumnProfile, profile_boolean_column
+from respark.profile.column_profiles import BooleanColumnProfile, profile_boolean_column
 
 
 def test_creates_valid_DateProfile(employees_df):

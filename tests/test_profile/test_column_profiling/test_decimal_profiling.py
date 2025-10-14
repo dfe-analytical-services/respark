@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from respark.layer_profile import (
+from respark.profile.column_profiles import (
     DecimalColumnProfile,
     profile_decimal_column,
 )

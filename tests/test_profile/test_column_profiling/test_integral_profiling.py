@@ -1,4 +1,7 @@
-from respark.layer_profile import IntegralColumnProfile, profile_integral_column
+from respark.profile.column_profiles import (
+    IntegralColumnProfile,
+    profile_integral_column,
+)
 
 
 def test_creates_valid_IntegralProfile(employees_df):

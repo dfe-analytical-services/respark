@@ -1,6 +1,7 @@
-from dataclasses import dataclass, field
-from typing import Dict
+from dataclasses import dataclass, field, asdict
+from typing import Dict, Any, Union
 from pyspark.sql import DataFrame, types as T
+
 from .column_profiles import (
     BaseColumnProfile,
     profile_boolean_column,
@@ -11,7 +12,8 @@ from .column_profiles import (
     profile_string_column,
 )
 
-type_dispatch = {
+
+TYPE_PROFILE_DISPATCH = {
     T.BooleanType: profile_boolean_column,
     T.DoubleType: profile_fractional_column,
     T.DecimalType: profile_decimal_column,
@@ -37,7 +39,7 @@ def profile_table(df: DataFrame, table_name: str) -> TableProfile:
         col_name = field.name
         spark_dtype = field.dataType
 
-        profiler_fn = type_dispatch.get(type(spark_dtype))
+        profiler_fn = TYPE_PROFILE_DISPATCH.get(type(spark_dtype))
 
         if profiler_fn:
             col_profiles[col_name] = profiler_fn(df, col_name)

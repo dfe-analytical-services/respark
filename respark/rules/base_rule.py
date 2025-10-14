@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Type
 from pyspark.sql import Column
-from .random_helpers import RNG
+from .numeric_utils import RNG
 
 
 class GenerationRule(ABC):
@@ -48,3 +48,17 @@ def get_generation_rule(rule_name: str, **params: Any) -> GenerationRule:
         return rule_class(**params)
     except KeyError:
         raise ValueError(f"Rule {rule_name} is not registered")
+
+
+@register_generation_rule("reuse_from_set")
+class ReuseFromSet(GenerationRule):
+    def get_set_values(self):
+        set_df = self.params["reference_df"]
+        set_col = self.params["reference_col"]
+        values = set_df.select(set_col).distinct().rdd.map(lambda r: r[0]).collect()
+        return values
+
+    def generate_column(self) -> Column:
+        values = self.get_set_values()
+        rng = self.rng()
+        return rng.choice(values)

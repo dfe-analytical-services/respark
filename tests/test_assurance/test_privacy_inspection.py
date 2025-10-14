@@ -1,22 +1,28 @@
 from datetime import date
 from pyspark.sql import Row
 
-
+from respark import ResparkRuntime
 from respark.layer_assurance.inspect_privacy import ColumnMatchesCheck, PrivacyParams
 
 
-def test_ColumnMatchesCheck_passes_valid_schemas(
-    employees_df, departments_df, mock_synth_schema
+def test_ColumnMatchesCheck_passes_valid_schemas(spark,
+    employees_df, departments_df, sales_df
 ):
-    source_data = {"employees": employees_df, "departments": departments_df}
-    synth_data = mock_synth_schema
+    mock_runtime = ResparkRuntime(spark)
+    mock_runtime.register_source("employees", employees_df)
+    mock_runtime.register_reference("departments", departments_df)
+    mock_runtime.register_source("sales", sales_df)
+    mock_runtime.profile_sources()
+    mock_runtime.create_generation_plan()
+
+    synth_data = mock_runtime.generate()
 
     sensitive_columns = {
         "employees": ["first_name", "last_name"],
     }
 
     params = PrivacyParams(
-        source_data=source_data,
+        source_data=mock_runtime.sources,
         synth_data=synth_data,
         sensitive_columns=sensitive_columns,
     )
@@ -29,11 +35,17 @@ def test_ColumnMatchesCheck_passes_valid_schemas(
     assert result.theme == "Privacy"
 
 
-def test_ColumnMatchesCheck_fails_invalid_schemas(
-    spark, employees_df, departments_df, mock_synth_schema
+def test_ColumnMatchesCheck_fails_invalid_schemas(spark,
+    employees_df, departments_df, sales_df
 ):
-    source_data = {"employees": employees_df, "departments": departments_df}
-    synth_data = mock_synth_schema
+    mock_runtime = ResparkRuntime(spark)
+    mock_runtime.register_source("employees", employees_df)
+    mock_runtime.register_reference("departments", departments_df)
+    mock_runtime.register_source("sales", sales_df)
+    mock_runtime.profile_sources()
+    mock_runtime.create_generation_plan()
+
+    synth_data = mock_runtime.generate()
 
     sensitive_columns = {
         "employees": ["first_name", "last_name"],
@@ -54,10 +66,11 @@ def test_ColumnMatchesCheck_fails_invalid_schemas(
     synth_data["employees"] = bad_employees_data
 
     params = PrivacyParams(
-        source_data=source_data,
+        source_data=mock_runtime.sources,
         synth_data=synth_data,
         sensitive_columns=sensitive_columns,
     )
+
     columns_inspection = ColumnMatchesCheck(params)
     result = columns_inspection.inspect()
 

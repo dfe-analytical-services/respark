@@ -1,5 +1,5 @@
 import pytest
-from respark.layer_profile import (
+from respark.profile.column_profiles import (
     FractionalColumnProfile,
     profile_fractional_column,
 )

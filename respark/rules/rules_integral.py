@@ -1,7 +1,7 @@
 from typing import Literal
 from pyspark.sql import Column
 from .base_rule import register_generation_rule, GenerationRule
-from .random_helpers import TYPE_BOUNDS, TYPE_CAST
+from .numeric_utils import INTEGRAL_BOUNDS, INTEGRAL_CAST
 
 
 class BaseIntegralRule(GenerationRule):
@@ -9,14 +9,14 @@ class BaseIntegralRule(GenerationRule):
     spark_subtype: Literal["byte", "short", "int", "long"]
 
     def generate_column(self) -> Column:
-        default_min = TYPE_BOUNDS[self.spark_subtype]["min_value"]
-        default_max = TYPE_BOUNDS[self.spark_subtype]["max_value"]
+        default_min = INTEGRAL_BOUNDS[self.spark_subtype]["min_value"]
+        default_max = INTEGRAL_BOUNDS[self.spark_subtype]["max_value"]
         min_value = self.params.get("min_value", default_min)
         max_value = self.params.get("max_value", default_max)
 
         rng = self.rng()
         col = rng.rand_int(min_value, max_value)
-        return col.cast(TYPE_CAST[self.spark_subtype])
+        return col.cast(INTEGRAL_CAST[self.spark_subtype])
 
 
 @register_generation_rule("random_byte")

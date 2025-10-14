@@ -1,33 +1,53 @@
+import math
+import sys
 from typing import Any, List, Union
+
 from pyspark.sql import Column, functions as F, types as T
 
 
-TYPE_BITS = {
+###
+# Dervive type-specific limits and bounds
+###
+INTEGRAL_BITS = {
     "byte": 8,
     "short": 16,
     "int": 32,
     "long": 64,
 }
 
-TYPE_CAST = {
+INTEGRAL_CAST = {
     "byte": T.ByteType(),
     "short": T.ShortType(),
     "int": T.IntegerType(),
     "long": T.LongType(),
 }
 
-TYPE_BOUNDS = {}
+INTEGRAL_BOUNDS = {
+    name: {
+        "min_value": -(1 << (bits - 1)),
+        "max_value": (1 << (bits - 1)) - 1,
+    }
+    for name, bits in INTEGRAL_BITS.items()
+}
 
-for spark_type, bits in TYPE_BITS.items():
+# IEEE-754 ranges
+DOUBLE_MAX = sys.float_info.max
+DOUBLE_MIN = -sys.float_info.max
 
-    num_bits: int = TYPE_BITS[spark_type]
-    min_value = -(1 << (bits - 1))
-    max_value = (1 << (bits - 1)) - 1
-    TYPE_BOUNDS[spark_type] = {}
-    TYPE_BOUNDS[spark_type]["min_value"] = min_value
-    TYPE_BOUNDS[spark_type]["max_value"] = max_value
+FLOAT_MAX = math.ldexp(2.0 - 2.0**-23, 127)
+FLOAT_MIN = -FLOAT_MAX
 
-# Constants used for building IEEE-754 doubles with ~53 bits of precision.
+FRACTIONAL_BOUNDS = {
+    "float": (FLOAT_MIN, FLOAT_MAX),
+    "double": (DOUBLE_MIN, DOUBLE_MAX),
+}
+
+FRACTIONAL_CAST = {
+    "float": T.FloatType(),
+    "double": T.DoubleType(),
+}
+
+# Constants used to build uniform doubles with ~53 bits of precision.
 _U53_INT = 1 << 53
 _U53 = float(_U53_INT)
 
@@ -39,10 +59,13 @@ def _to_col(x: Any) -> Column:
 
 class RNG:
     """
-    Deterministic, per-row RNG built from a stable row index, a base seed, and optional 'salt'.
-    - `row_idx` must be deterministic and stable across runs/partitions.
-    - `seed` controls the global stream.
-    - `salt` lets callers create independent sub-streams (e.g., by column name).
+    Deterministic, per-row RNG based on a stable row index and a global seed.
+
+    - row_idx: a deterministic, stable index Column (i.e., __row_idx).
+    - base_seed: run-level seed, any int.
+
+    Methords include optional *salt parameters. These allow independent random
+    substreams by passing unique tokens: table name, column name, column type etc.
     """
 
     def __init__(self, row_idx: Column, base_seed: int):

@@ -1,14 +1,13 @@
 import pytest
-from respark.layer_profile import (
+from respark.profile.column_profiles import (
     StringColumnProfile,
     IntegralColumnProfile,
     DateColumnProfile,
     DecimalColumnProfile,
     FractionalColumnProfile,
     BooleanColumnProfile,
-    TableProfile,
-    profile_table,
 )
+from respark.profile import TableProfile, profile_table
 
 
 def test_profilling_supported_tables(employees_df, departments_df, sales_df):

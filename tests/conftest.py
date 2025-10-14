@@ -1,9 +1,10 @@
 import pytest
 from typing import Dict, cast
 from pyspark.sql import SparkSession, DataFrame
-from respark.layer_profile import SchemaProfiler, SchemaProfile
-from respark.layer_configure import SchemaGenerationPlan, make_generation_plan
-from respark.layer_execute import SynthSchemaGenerator
+from respark import ResparkRuntime
+from respark.profile import SchemaProfile, profile_schema
+from respark.plan import SchemaGenerationPlan
+from respark.generate import SynthSchemaGenerator
 from .data import (
     employees_schema,
     employees_rows,
@@ -34,7 +35,9 @@ def spark():
         spark.stop()
 
 
-# Valid Dataframes
+###
+# Create Mock DataFrames, both valid and invalid
+###
 @pytest.fixture(scope="session")
 def employees_df(spark: SparkSession) -> DataFrame:
     return spark.createDataFrame(employees_rows, schema=employees_schema)
@@ -50,29 +53,8 @@ def sales_df(spark: SparkSession) -> DataFrame:
     return spark.createDataFrame(sales_rows, schema=sales_schema)
 
 
-# Invalid Dataframes
 @pytest.fixture(scope="session")
 def invalid_employees_df(spark: SparkSession) -> DataFrame:
     return spark.createDataFrame(
         invalid_employees_rows, schema=invalid_employees_schema
     )
-
-
-# Mock Schemas
-@pytest.fixture(scope="session")
-def mock_schema_profile(employees_df, departments_df, sales_df) -> SchemaProfile:
-    mock_profiler = SchemaProfiler()
-    return mock_profiler.profile_schema(
-        {"employees": employees_df, "departments": departments_df, "sales": sales_df}
-    )
-
-
-@pytest.fixture(scope="session")
-def mock_schema_gen_plan(mock_schema_profile) -> SchemaGenerationPlan:
-    return make_generation_plan(mock_schema_profile)
-
-
-@pytest.fixture(scope="session")
-def mock_synth_schema(spark, mock_schema_gen_plan) -> Dict[str, DataFrame]:
-    mock_schema_generator = SynthSchemaGenerator(spark)
-    return mock_schema_generator.generate_synthetic_schema(mock_schema_gen_plan)

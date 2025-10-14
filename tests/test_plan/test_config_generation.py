@@ -1,29 +1,27 @@
-from respark.layer_profile import SchemaProfiler
-from respark.layer_configure import SchemaGenerationPlan, make_generation_plan
+from respark.plan import SchemaGenerationPlan
+from respark import ResparkRuntime
 
 
-def test_generation_plan_infers_rules_and_params(
+def test_generation_plan_infers_rules_and_params(spark,
     employees_df, departments_df, sales_df
 ):
+    mock_runtime = ResparkRuntime(spark)
+    mock_runtime.register_source("employees", employees_df)
+    mock_runtime.register_reference("departments", departments_df)
+    mock_runtime.register_source("sales", sales_df)
 
-    # Generate test profile and proposed generation plan
-    profiler = SchemaProfiler()
-    schema_profile = profiler.profile_schema(
-        {"employees": employees_df, "departments": departments_df, "sales": sales_df}
-    )
-    plan = make_generation_plan(schema_profile)
+    mock_runtime.profile_sources()
+
+    plan = mock_runtime.create_generation_plan()
 
     # Check Generation Plan
     assert isinstance(plan, SchemaGenerationPlan)
     tables = {t.name: t for t in plan.tables}
-    assert set(tables) == {"employees", "departments", "sales"}
+    assert set(tables) == {"employees", "sales"}
     assert tables["employees"].row_count == employees_df.count()
-    assert tables["departments"].row_count == departments_df.count()
     assert tables["sales"].row_count == sales_df.count()
 
     emp_cols = {c.name: c for c in tables["employees"].columns}
-    dep_cols = {c.name: c for c in tables["departments"].columns}
-    sales_cols = {c.name: c for c in tables["sales"].columns}
 
     # Check default assigned rules
     assert {c.name: c.rule for c in tables["employees"].columns} == {
@@ -32,11 +30,6 @@ def test_generation_plan_infers_rules_and_params(
         "last_name": "random_string",
         "department_id": "random_int",
         "is_current": "random_boolean",
-    }
-
-    assert {c.name: c.rule for c in tables["departments"].columns} == {
-        "department_id": "random_int",
-        "department_name": "random_string",
     }
 
     assert {c.name: c.rule for c in tables["sales"].columns} == {
@@ -50,9 +43,6 @@ def test_generation_plan_infers_rules_and_params(
     # Check String Params
     assert emp_cols["first_name"].params.get("min_length") == 3
     assert emp_cols["first_name"].params.get("max_length") == 6
-
-    assert dep_cols["department_id"].params.get("min_value") == 1
-    assert dep_cols["department_id"].params.get("max_value") == 5
 
     # Test .to_dict()
     as_dict = plan.to_dict()

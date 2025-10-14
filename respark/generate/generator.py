@@ -1,10 +1,7 @@
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 import hashlib
-from respark.layer_configure import (
-    SchemaGenerationPlan,
-    TableGenerationPlan,
-    get_generation_rule,
-)
+from respark.plan import SchemaGenerationPlan, TableGenerationPlan
+from respark.rules import get_generation_rule
 from pyspark.sql import SparkSession, DataFrame, Column, functions as F, types as T
 
 
@@ -30,9 +27,15 @@ TYPE_DISPATCH = {
 
 
 class SynthSchemaGenerator:
-    def __init__(self, spark: SparkSession, seed: int = 18151210):
+    def __init__(
+        self,
+        spark: SparkSession,
+        seed: int = 18151210,
+        references: Optional[Dict[str, DataFrame]] = None,
+    ):
         self.spark = spark
         self.seed = int(seed)
+        self.references = references or {}
 
     def generate_synthetic_schema(
         self, schema_gen_plan: SchemaGenerationPlan
@@ -45,6 +48,7 @@ class SynthSchemaGenerator:
                 spark_session=self.spark,
                 table_gen_plan=table_plan,
                 seed=self.seed,
+                references=self.references,
             )
             synth_schema[table_generator.table_gen_plan.name] = (
                 table_generator.generate_synthetic_table()
@@ -59,12 +63,14 @@ class SynthTableGenerator:
         spark_session: SparkSession,
         table_gen_plan: TableGenerationPlan,
         seed: int = 18151210,
+        references: Optional[Dict[str, DataFrame]] = None,
     ):
         self.spark = spark_session
         self.table_gen_plan = table_gen_plan
         self.table_name = table_gen_plan.name
         self.row_count = table_gen_plan.row_count
         self.seed = seed
+        self.references = references or {}
 
     def generate_synthetic_table(self):
         synth_df = self.spark.range(0, self.row_count, 1)
@@ -74,7 +80,6 @@ class SynthTableGenerator:
             col_seed = _create_stable_seed(
                 self.seed, self.table_name, column_plan.name, column_plan.rule
             )
-
             exec_params = {
                 **column_plan.params,
                 "__seed": col_seed,
@@ -83,6 +88,11 @@ class SynthTableGenerator:
                 "__dtype": column_plan.data_type,
                 "__row_idx": F.col("__row_idx"),
             }
+
+            if column_plan.rule == "reuse_from_set":
+                ref_key = exec_params["reference_df"]
+                exec_params["reference_df"] = self.references[ref_key]
+                exec_params.setdefault("reference_col", column_plan.name)
 
             rule = get_generation_rule(column_plan.rule, **exec_params)
             col_expr: Column = rule.generate_column()
