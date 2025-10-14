@@ -1,4 +1,4 @@
-from respark.layer_profile import (
+from respark.profile.column_profiles import (
     DateColumnProfile,
     profile_date_column,
 )

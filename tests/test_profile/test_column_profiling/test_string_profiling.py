@@ -1,4 +1,4 @@
-from respark.layer_profile import (
+from respark.profile.column_profiles import (
     StringColumnProfile,
     profile_string_column,
 )

@@ -1,4 +1,4 @@
-from respark.layer_execute.executor import _create_stable_seed
+from respark.generate.generator import _create_stable_seed
 
 
 # Check that column stable seed is still deterministic

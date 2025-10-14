@@ -1,7 +1,7 @@
 import json
 from typing import Dict, Any, List
 from dataclasses import dataclass, field, asdict
-from respark.layer_profile import SchemaProfile
+from respark.profile import SchemaProfile
 
 
 @dataclass
@@ -17,7 +17,6 @@ class ColumnGenerationPlan:
     def to_json(self, path: str) -> None:
         with open(path, "w") as f:
             json.dump(self.to_dict(), f, sort_keys=False)
-
 
 
 @dataclass
@@ -56,9 +55,9 @@ class SchemaGenerationPlan:
     ) -> ColumnGenerationPlan:
         for table in self.tables:
             if table.name == table_name:
-                for column in table.columns:
-                    if column.name == column_name:
-                        return column
+                for column_plan in table.columns:
+                    if column_plan.name == column_name:
+                        return column_plan
         raise ValueError(f"Column {column_name} not found in table {table_name}.")
 
     def update_column_rule(
@@ -95,29 +94,3 @@ class SchemaGenerationPlan:
                 table.row_count = new_row_count
                 return
         raise ValueError(f"Table {table_name} not found in the generation plan.")
-
-
-def create_generation_plan(schema_profile: SchemaProfile) -> SchemaGenerationPlan:
-    tables: List[TableGenerationPlan] = []
-
-    for _, table_profile in schema_profile.tables.items():
-        col_plans: List[ColumnGenerationPlan] = []
-        row_count = table_profile.row_count
-
-        for _, column_profile in table_profile.columns.items():
-            col_plans.append(
-                ColumnGenerationPlan(
-                    name=column_profile.name,
-                    data_type=column_profile.spark_subtype,
-                    rule=column_profile.default_rule(),
-                    params=column_profile.type_specific_params(),
-                )
-            )
-
-        tables.append(
-            TableGenerationPlan(
-                name=table_profile.name, row_count=row_count, columns=col_plans
-            )
-        )
-
-    return SchemaGenerationPlan(tables)
