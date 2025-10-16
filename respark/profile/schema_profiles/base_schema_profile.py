@@ -1,7 +1,9 @@
 from dataclasses import dataclass, field, asdict
-from typing import Dict, Any, Union
+from typing import Dict, Any, Union, Iterable
 from pyspark.sql import DataFrame
-from .table_profile import TableProfile, profile_table
+from ..table_profile import TableProfile, profile_table
+from .dag import DAG
+from .types import FkConstraint
 
 
 @dataclass(slots=True)
@@ -10,6 +12,9 @@ class SchemaProfile:
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
+
+    def build_dag(self, fk_constraints: Iterable[FkConstraint]) -> DAG:
+        return DAG.from_fk_constraints(self.tables.keys(), fk_constraints)
 
 
 def profile_schema(

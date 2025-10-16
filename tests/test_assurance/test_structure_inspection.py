@@ -5,8 +5,8 @@ from respark.layer_assurance.inspect_structure import (
 )
 
 
-def test_SchemaStructureCheck_passes_valid_schemas(spark,
-    employees_df, departments_df, sales_df
+def test_SchemaStructureCheck_passes_valid_schemas(
+    spark, employees_df, departments_df, sales_df
 ):
     mock_runtime = ResparkRuntime(spark)
     mock_runtime.register_source("employees", employees_df)
@@ -29,8 +29,8 @@ def test_SchemaStructureCheck_passes_valid_schemas(spark,
     assert result.theme == "Structure"
 
 
-def test_SchemaStructureCheck_fails_invalid_schemas(spark,
-    employees_df, departments_df, sales_df
+def test_SchemaStructureCheck_fails_invalid_schemas(
+    spark, employees_df, departments_df, sales_df
 ):
     mock_runtime = ResparkRuntime(spark)
     mock_runtime.register_source("employees", employees_df)

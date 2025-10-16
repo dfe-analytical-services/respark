@@ -1,6 +1,14 @@
+import pprint
 from typing import Any, List, Dict, Iterable, Optional
 from pyspark.sql import DataFrame, functions as F
-from respark.profile import SchemaProfile, TableProfile, profile_schema
+from respark.profile import (
+    SchemaProfile,
+    TableProfile,
+    profile_schema,
+    FkConstraint,
+    DAG,
+    CycleError,
+)
 from respark.plan import SchemaGenerationPlan, TableGenerationPlan, ColumnGenerationPlan
 from respark.generate import SynthSchemaGenerator
 
@@ -18,6 +26,10 @@ class ResparkRuntime:
         self.references: Dict[str, DataFrame] = {}
         self.profile: Optional[SchemaProfile] = None
         self.generation_plan: Optional[SchemaGenerationPlan] = None
+        self.fk_constraints: List[FkConstraint] = []
+
+        # Internal attributes
+        self._layers: Optional[List[List[str]]] = None
 
     ###
     # Profiling Methods
@@ -85,15 +97,59 @@ class ResparkRuntime:
     # Planning Methods
     ###
 
+    def add_fk_constraint(
+        self, pk_table: str, pk_col: str, fk_table: str, fk_col: str
+    ) -> None:
+        """
+        Add a new FK constraint. Returns the generated name.
+        Raises ValueError if a constraint with the same name already exists.
+        """
+        name = FkConstraint.derive_name(pk_table, pk_col, fk_table, fk_col)
+
+        for c in self.fk_constraints:
+            if c.name == name:
+                raise ValueError(f"Constraint '{name}' already present")
+
+        self.fk_constraints.append(
+            FkConstraint(
+                pk_table=pk_table, pk_column=pk_col, fk_table=fk_table, fk_column=fk_col
+            )
+        )
+        # Invalidate cached layers
+        self._layers = None
+
+    def remove_fk_constraint(self, fk_name: str) -> None:
+        """
+        Remove by name. Raise KeyError if not found.
+        """
+        for i, constraint in enumerate(self.fk_constraints):
+            if constraint.name == fk_name:
+                del self.fk_constraints[i]
+                # Invalidate cached layers
+                self._layers = None
+
+        raise KeyError(f"No constraint with name '{fk_name}' is currently stored")
+
+    def list_fk_constraints(self) -> List[FkConstraint]:
+        """
+        Return a sorted list of constraints.
+        """
+        return sorted(self.fk_constraints, key=lambda c: c.name)
+
+    def print_fk_constraints(self) -> None:
+        pprint.pprint([c.to_dict() for c in self.list_fk_constraints()])
+
     def create_generation_plan(self) -> SchemaGenerationPlan:
         """
-        Using the generated schema profile, generate the default
-        generation plan.
+        Using the generated schema profile, 
+        generate the default generation plan.
         """
 
-        table_generation_plans: List[TableGenerationPlan] = []
         if self.profile is None:
             raise RuntimeError("Profile is not set. Call profile_sources() first.")
+
+        table_generation_plans: List[TableGenerationPlan] = []
+
         for _, table_profile in self.profile.tables.items():
             col_plans: List[ColumnGenerationPlan] = []
             row_count = table_profile.row_count
@@ -114,6 +170,28 @@ class ResparkRuntime:
                 )
             )
         self.generation_plan = SchemaGenerationPlan(table_generation_plans)
+
+        table_names = [table_plan.name for table_plan in self.generation_plan.tables]
+
+        missing = [
+            (constraint.pk_table, constraint.fk_table)
+            for constraint in self.fk_constraints
+            if constraint.pk_table not in table_names
+            or constraint.fk_table not in table_names
+        ]
+        if missing:
+            raise ValueError(
+                "Constraints reference tables outside the plan: "
+                + ", ".join(f"{u}->{v}" for (u, v) in missing)
+            )
+        try:
+            dag = DAG.from_fk_constraints(table_names, self.fk_constraints)
+            self._layers = dag.compute_layers()
+        except CycleError as e:
+            raise RuntimeError(
+                f"Cycle detected in FK relationships for current plan: {e}"
+            ) from e
+
         return self.generation_plan
 
     def update_column_rule(self, table: str, col: str, rule: str) -> None:
@@ -133,14 +211,34 @@ class ResparkRuntime:
             raise RuntimeError("Call create_generation_plan() first.")
         self.generation_plan.update_table_row_count(table, new_row_count)
 
+    def get_generation_layers(self) -> List[List[str]]:
+        if self.generation_plan is None:
+            raise RuntimeError(
+                "No generation plan. Call create_generation_plan() first."
+            )
+        if self._layers is None:
+            names = [t.name for t in self.generation_plan.tables]
+            dag = DAG.from_fk_constraints(names, self.fk_constraints)
+            self._layers = dag.compute_layers()
+        return self._layers
+
+    def print_generation_layers(self) -> None:
+        pprint.pprint(self._layers)
+
     ###
     # Generation Methods
     ###
 
-    def generate(self) -> Dict[str, DataFrame]:
+
+    def generate(
+        self,
+    ) -> Dict[str, DataFrame]:
         if self.generation_plan is None:
-            raise RuntimeError(
-                "generation_plan is not set. Call create_generation_plan() first."
-            )
+            raise RuntimeError("generation_plan is not set. Call create_generation_plan() first.")
+
         gen = SynthSchemaGenerator(self.spark, references=self.references)
-        return gen.generate_synthetic_schema(self.generation_plan)
+        return gen.generate_synthetic_schema(
+            schema_gen_plan=self.generation_plan,
+            fk_constraints=self.fk_constraints,   
+        )
+

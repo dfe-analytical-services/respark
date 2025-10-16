@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import date
 from typing import ClassVar, TypedDict, Literal, Optional
 from pyspark.sql import DataFrame, functions as F
-from .base_profile import BaseColumnProfile
+from .base_column_profile import BaseColumnProfile
 
 
 # Parameters unique to Date values

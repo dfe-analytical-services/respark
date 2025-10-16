@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Dict, ClassVar, TypedDict, Literal, Any, Optional
 from pyspark.sql import DataFrame, functions as F, types as T
-from .base_profile import BaseColumnProfile
+from .base_column_profile import BaseColumnProfile
 
 
 # Parameters unique to Integral values

@@ -1,7 +1,9 @@
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 import hashlib
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from respark.plan import SchemaGenerationPlan, TableGenerationPlan
 from respark.rules import get_generation_rule
+from respark.profile import FkConstraint, DAG
 from pyspark.sql import SparkSession, DataFrame, Column, functions as F, types as T
 
 
@@ -38,23 +40,47 @@ class SynthSchemaGenerator:
         self.references = references or {}
 
     def generate_synthetic_schema(
-        self, schema_gen_plan: SchemaGenerationPlan
+        self, 
+        schema_gen_plan: SchemaGenerationPlan,
+        fk_constraints: List[FkConstraint]
+
     ) -> Dict[str, DataFrame]:
 
+
+        table_plan_map: Dict[str, TableGenerationPlan] = {
+            tgp.name: tgp for tgp in schema_gen_plan.tables
+        }
+        table_names = list(table_plan_map.keys())
+  
         synth_schema: Dict[str, DataFrame] = {}
 
-        for table_plan in schema_gen_plan.tables:
-            table_generator = SynthTableGenerator(
-                spark_session=self.spark,
-                table_gen_plan=table_plan,
-                seed=self.seed,
-                references=self.references,
-            )
-            synth_schema[table_generator.table_gen_plan.name] = (
-                table_generator.generate_synthetic_table()
-            )
+        
+        dag = DAG.from_fk_constraints(table_names, fk_constraints)
+        layers = dag.compute_layers()
+
+        
+        for layer in layers:
+                with ThreadPoolExecutor() as ex:
+                    futures = {
+                        ex.submit(self._generate_table, table_plan_map[name]): name
+                        for name in layer
+                    }
+                    for fut in as_completed(futures):
+                        name = futures[fut]
+                        synth_schema[name] = fut.result()
 
         return synth_schema
+
+
+    def _generate_table(self, table_plan: TableGenerationPlan) -> DataFrame:
+        tg = SynthTableGenerator(
+            spark_session=self.spark,
+            table_gen_plan=table_plan,
+            seed=self.seed,
+            references=self.references,
+        )
+        return tg.generate_synthetic_table()
+
 
 
 class SynthTableGenerator:
