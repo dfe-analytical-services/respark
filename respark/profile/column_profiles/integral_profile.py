@@ -61,7 +61,7 @@ def profile_integral_column(df: DataFrame, col_name: str) -> IntegralColumnProfi
         cast_type = "byte"
     elif isinstance(data_type, T.ShortType):
         IntegralClass = ShortColumnProfile
-        cast_type = "double"
+        cast_type = "short"
     elif isinstance(data_type, T.IntegerType):
         IntegralClass = IntColumnProfile
         cast_type = "int"
