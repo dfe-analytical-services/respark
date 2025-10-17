@@ -1,6 +1,8 @@
 import pprint
 from typing import Any, List, Dict, Iterable, Optional
 from pyspark.sql import DataFrame, functions as F
+
+from respark.runtime_distributed import DistributedChooser
 from respark.profile import (
     SchemaProfile,
     TableProfile,
@@ -27,6 +29,11 @@ class ResparkRuntime:
         self.profile: Optional[SchemaProfile] = None
         self.generation_plan: Optional[SchemaGenerationPlan] = None
         self.fk_constraints: List[FkConstraint] = []
+
+        self.distributed = DistributedChooser()
+        self.synthetics: Dict[str, DataFrame] = {}
+
+        self._layers: Optional[List[List[str]]] = None
 
         # Internal attributes
         self._layers: Optional[List[List[str]]] = None
@@ -141,7 +148,7 @@ class ResparkRuntime:
 
     def create_generation_plan(self) -> SchemaGenerationPlan:
         """
-        Using the generated schema profile, 
+        Using the generated schema profile,
         generate the default generation plan.
         """
 
@@ -229,16 +236,14 @@ class ResparkRuntime:
     # Generation Methods
     ###
 
-
-    def generate(
-        self,
-    ) -> Dict[str, DataFrame]:
+    def generate(self) -> Dict[str, DataFrame]:
         if self.generation_plan is None:
-            raise RuntimeError("generation_plan is not set. Call create_generation_plan() first.")
+            raise RuntimeError(
+                "generation_plan is not set. Call create_generation_plan() first."
+            )
 
-        gen = SynthSchemaGenerator(self.spark, references=self.references)
+        gen = SynthSchemaGenerator(self.spark, references=self.references, runtime=self)
         return gen.generate_synthetic_schema(
             schema_gen_plan=self.generation_plan,
-            fk_constraints=self.fk_constraints,   
+            fk_constraints=self.fk_constraints,
         )
-

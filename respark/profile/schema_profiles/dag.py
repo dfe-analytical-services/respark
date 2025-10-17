@@ -36,7 +36,7 @@ class DAG:
     ) -> Self:
         """
         Build a DAG restricted to the given table_names. Any constraint that
-        references a table outside table_names is ignored (safe for partial plans).
+        references a table outside table_names is ignored.
         """
         nodes: Set[Table] = set(table_names)
         edges: Set[Edge] = set()
@@ -50,7 +50,6 @@ class DAG:
         )
 
     def _adj_and_indegree(self) -> Tuple[Dict[Table, Set[Table]], Dict[Table, int]]:
-        """ """
         adj: Dict[Table, Set[Table]] = {n: set() for n in self.nodes}
         indeg: Dict[Table, int] = {n: 0 for n in self.nodes}
 
@@ -64,8 +63,8 @@ class DAG:
 
     def compute_layers(self) -> Layers:
         """
-        Layered topological sort with Khan's algorithm. 
-        
+        Layered topological sort with Khan's algorithm.
+
         Each inner list is a 'wave' that can be
         generated in parallel.
 
