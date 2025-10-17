@@ -18,7 +18,7 @@ class IntegralColumnProfile(BaseColumnProfile[IntegralParams]):
     min_value: Optional[int] = None
     max_value: Optional[int] = None
     mean_value: Optional[float] = None
-    spark_subtype: Optional[Literal["byte", "short", "int", "long"]] = None
+    spark_subtype: ClassVar[Literal["byte", "short", "int", "long"]]
 
     def default_rule(self) -> str:
         return f"random_{self.spark_subtype}"
