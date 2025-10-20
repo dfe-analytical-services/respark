@@ -1,16 +1,10 @@
-from typing import Protocol, Any
+from typing import Any
 from pyspark.sql import Column, functions as F
 from .hashing import hash64
 
 # Constants used to build uniform doubles with ~53 bits of precision.
 _U53_INT = 1 << 53
 _U53 = float(_U53_INT)
-
-
-class RNGProtocol(Protocol):
-    """Protocol for RNG implementations usable by samplers/rules."""
-
-    def uniform_01_double(self, *salt: Any) -> Column: ...
 
 
 class RNG:

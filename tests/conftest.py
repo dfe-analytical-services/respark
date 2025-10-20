@@ -1,10 +1,7 @@
 import pytest
-from typing import Dict, cast
+from typing import cast
 from pyspark.sql import SparkSession, DataFrame
-from respark import ResparkRuntime
-from respark.profile import SchemaProfile, profile_schema
-from respark.plan import SchemaGenerationPlan
-from respark.generate import SynthSchemaGenerator
+
 from .data import (
     employees_schema,
     employees_rows,
@@ -15,6 +12,8 @@ from .data import (
     invalid_employees_schema,
     invalid_employees_rows,
 )
+
+TEST_SEED = 2025
 
 
 # Making a spark session available to pytest during testing
@@ -33,6 +32,11 @@ def spark():
         yield spark
     finally:
         spark.stop()
+
+
+@pytest.fixture(scope="session")
+def test_seed() -> int:
+    return TEST_SEED
 
 
 ###

@@ -33,7 +33,6 @@ class ResparkRuntime:
         self.sampler = UniformParentSampler()
         self.synthetics: Dict[str, DataFrame] = {}
 
-
         # Internal attributes
         self._layers: Optional[List[List[str]]] = None
 
