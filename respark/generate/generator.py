@@ -71,7 +71,7 @@ class SynthSchemaGenerator:
                     df = fut.result()
                     synth_schema[name] = df
                     if self.runtime is not None:
-                        self.runtime.synthetics[name] = df
+                        self.runtime.generated_synthetics[name] = df
 
         return synth_schema
 

@@ -10,20 +10,20 @@ if TYPE_CHECKING:
     from respark.runtime import ResparkRuntime
 
 
-@register_generation_rule("reuse_from_set")
-class ReuseFromSet(GenerationRule):
+@register_generation_rule("sample_from_reference")
+class SampleFromReference(GenerationRule):
     """
-    Uniformly choose values for a column from the DISTINCT set in a named reference DataFrame.
+    Uniformly sample values from the DISTINCT set in a named reference DataFrame.
 
     Expected params:
-      - ref_name: str        # key in runtime.references
-      - reference_col: str   # the column to draw values from (distinct)
+      - reference_name str      # key in runtime.references
+      - column: str   # reference column to draw values from (distinct)
     """
 
-    # This rule is relational; generate_column() is not used
+    # Relational rule: generate_column() not used
     def generate_column(self) -> Column:
         raise NotImplementedError(
-            "ReuseFromSet is relational; use apply(df, runtime, target_col)."
+            "SampleFromReference is relational; use apply(df, runtime, target_col)."
         )
 
     def apply(
@@ -31,17 +31,19 @@ class ReuseFromSet(GenerationRule):
     ) -> DataFrame:
         if runtime is None:
             raise RuntimeError(
-                "ReuseFromSet requires runtime (for references and distributed chooser)."
+                "SampleFromReference requires runtime (for references and distributed chooser)."
             )
 
-        ref_name = self.params["ref_name"]
-        ref_col: str = self.params["reference_col"]
+        ref_name = self.params["reference_name"]
+        ref_col = self.params["column"]
+
+        if not ref_name or not ref_col:
+            raise ValueError("Params 'reference_name' and 'column' are required.")
 
         if ref_name not in runtime.references:
             raise ValueError(f"Reference '{ref_name}' not found in runtime.references")
 
         sampler = UniformParentSampler()
-        # Build or reuse artifacts for this distinct set
         artifact = sampler.ensure_artifact_for_parent(
             cache_key=(ref_name, ref_col),
             parent_df=runtime.references[ref_name],
@@ -51,7 +53,6 @@ class ReuseFromSet(GenerationRule):
         rng = self.rng()
         out_type: T.DataType = df.schema[target_col].dataType
 
-        # Use independent salts for partition vs position choices (deterministic per-row)
         salt_base = f"{self.params.get('__table', 'table')}.{target_col}"
         return sampler.assign_uniform_from_artifact(
             child_df=df,
@@ -64,17 +65,20 @@ class ReuseFromSet(GenerationRule):
         )
 
 
-@register_generation_rule("fk_from_constraint")
-class FkFromConstraint(GenerationRule):
+@register_generation_rule("fk_from_parent")
+class ForeignKeyFromParent(GenerationRule):
     """
-    Assign fk_table.fk_column by uniformly sampling pk_table.pk_column
+    Populate a child FK by uniformly sampling the parent's PK values
     from the synthetic parent produced in a prior DAG layer.
+
+    Expected params:
+      - constraint: FkConstraint    # describes pk_table, pk_column, fk_table, fk_column, name
     """
 
-    # This rule is relational; generate_column() is not used
+    # Relational rule: generate_column() not used
     def generate_column(self) -> Column:
         raise NotImplementedError(
-            "FkFromConstraint is relational; use apply(df, runtime, target_col)."
+            "ForeignKeyFromParent is relational; use apply(df, runtime, target_col)."
         )
 
     def apply(
@@ -82,28 +86,28 @@ class FkFromConstraint(GenerationRule):
     ) -> DataFrame:
         if runtime is None:
             raise RuntimeError(
-                "FkFromConstraint requires runtime (synthetics and distributed chooser)."
+                "ForeignKeyFromParent requires runtime (synthetics and distributed chooser)."
             )
 
-        c: FkConstraint = self.params["constraint"]
+        constraint: FkConstraint = self.params["constraint"]
 
-        if c.fk_column != target_col:
+        if constraint.fk_column != target_col:
             raise ValueError(
-                f"Constraint targets {c.fk_table}.{c.fk_column} but rule is populating {target_col}"
+                f"Constraint targets {constraint.fk_table}.{constraint.fk_column} but rule is populating {target_col}"
             )
 
-        if c.pk_table not in runtime.synthetics:
+        if constraint.pk_table not in runtime.generated_synthetics:
             raise ValueError(
-                f"Synthetic parent table '{c.pk_table}' not present. "
+                f"Synthetic parent table '{constraint.pk_table}' not present. "
                 "Ensure DAG layers run parents before children."
             )
-        parent_df = runtime.synthetics[c.pk_table]
+        parent_df = runtime.generated_synthetics[constraint.pk_table]
 
         sampler = UniformParentSampler()
         artifact = sampler.ensure_artifact_for_parent(
-            cache_key=(c.pk_table, c.pk_column),
+            cache_key=(constraint.pk_table, constraint.pk_column),
             parent_df=parent_df,
-            parent_col=c.pk_column,
+            parent_col=constraint.pk_column,
             distinct=False,  # parent PK should already be unique
         )
 
@@ -116,6 +120,6 @@ class FkFromConstraint(GenerationRule):
             rng=rng,
             out_col=target_col,
             out_type=out_type,
-            salt_partition=f"{c.name}:part",
-            salt_position=f"{c.name}:pos",
+            salt_partition=f"{constraint.name}:part",
+            salt_position=f"{constraint.name}:pos",
         )

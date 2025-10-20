@@ -1,5 +1,5 @@
 from pyspark.sql import Column, functions as F, types as T
-from .base_rule import register_generation_rule, GenerationRule
+from .core_rules import register_generation_rule, GenerationRule
 
 
 @register_generation_rule("random_boolean")

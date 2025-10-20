@@ -31,7 +31,7 @@ class ResparkRuntime:
         self.fk_constraints: List[FkConstraint] = []
 
         self.sampler = UniformParentSampler()
-        self.synthetics: Dict[str, DataFrame] = {}
+        self.generated_synthetics: Dict[str, DataFrame] = {}
 
         # Internal attributes
         self._layers: Optional[List[List[str]]] = None
