@@ -2,7 +2,7 @@ import pytest
 from datetime import date
 from pyspark.sql import functions as F, types as T
 from respark.rules import get_generation_rule, GENERATION_RULES_REGISTRY
-from respark.rules.numeric_utils import INTEGRAL_BOUNDS
+from respark.core import INTEGRAL_BOUNDS
 
 TEST_SEED = 2025
 

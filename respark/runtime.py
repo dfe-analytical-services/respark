@@ -2,7 +2,7 @@ import pprint
 from typing import Any, List, Dict, Iterable, Optional
 from pyspark.sql import DataFrame, functions as F
 
-from respark.runtime_distributed import DistributedChooser
+from respark.sampling import UniformParentSampler
 from respark.profile import (
     SchemaProfile,
     TableProfile,
@@ -30,10 +30,9 @@ class ResparkRuntime:
         self.generation_plan: Optional[SchemaGenerationPlan] = None
         self.fk_constraints: List[FkConstraint] = []
 
-        self.distributed = DistributedChooser()
+        self.sampler = UniformParentSampler()
         self.synthetics: Dict[str, DataFrame] = {}
 
-        self._layers: Optional[List[List[str]]] = None
 
         # Internal attributes
         self._layers: Optional[List[List[str]]] = None

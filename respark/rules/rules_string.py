@@ -1,6 +1,7 @@
 import string
 from pyspark.sql import Column, functions as F, types as T
 from .base_rule import register_generation_rule, GenerationRule
+from respark.random import randint_int, choice
 
 
 # String Rules
@@ -13,10 +14,10 @@ class RandomStringRule(GenerationRule):
 
         rng = self.rng()
 
-        length = rng.rand_int(min_length, max_length, "len")
+        length = randint_int(rng, min_length, max_length, "len")
         charset_arr = F.array([F.lit(c) for c in charset])
 
         pos_seq = F.sequence(F.lit(0), F.lit(max_length - 1))
-        chars = F.transform(pos_seq, lambda p: rng.choice(charset_arr, "pos", p))
+        chars = F.transform(pos_seq, lambda p: choice(rng, charset_arr, "pos", p))
 
         return F.concat_ws("", F.slice(chars, 1, length)).cast(T.StringType())

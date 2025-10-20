@@ -1,6 +1,7 @@
 from datetime import datetime
 from pyspark.sql import Column, functions as F
 from .base_rule import register_generation_rule, GenerationRule
+from respark.random import randint_int
 
 
 # Date Rules
@@ -17,5 +18,5 @@ class RandomDateRule(GenerationRule):
         rng = self.rng()
 
         start = F.lit(min_date_str).cast("date")
-        offset = rng.rand_int(0, days_range)
+        offset = randint_int(rng, 0, days_range)
         return F.date_add(start, offset).cast("date")

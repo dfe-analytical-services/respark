@@ -3,7 +3,7 @@ from typing import Any, Dict, Type, Optional, TYPE_CHECKING
 
 from pyspark.sql import DataFrame, Column
 from pyspark.sql import types as T
-from .numeric_utils import RNG
+from respark.random import RNG
 from respark.profile import FkConstraint
 
 if TYPE_CHECKING:
