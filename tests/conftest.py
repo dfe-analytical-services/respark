@@ -2,6 +2,8 @@ import pytest
 from typing import cast
 from pyspark.sql import SparkSession, DataFrame
 
+from respark import ResparkRuntime
+
 from .data import (
     employees_schema,
     employees_rows,
@@ -37,6 +39,12 @@ def spark():
 @pytest.fixture(scope="session")
 def test_seed() -> int:
     return TEST_SEED
+
+
+@pytest.fixture(scope="function")
+def test_runtime(spark):
+    rt = ResparkRuntime(spark)
+    return rt
 
 
 ###

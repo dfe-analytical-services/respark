@@ -1,4 +1,3 @@
-
 import pytest
 from typing import Any, cast
 from pyspark.sql import functions as F
@@ -6,10 +5,12 @@ from pyspark.sql import types as T
 import respark.rules.core_rules as core_rules
 from respark.rules import GENERATION_RULES_REGISTRY
 
+
 class MockRuntime:
     """
     A simple mock runtime with the attributes used by the rules.
     """
+
     def __init__(self, references=None, generated_synthetics=None):
         self.references = references or {}
         self.generated_synthetics = generated_synthetics or {}
@@ -19,9 +20,11 @@ def test_rules_are_registered_under_new_names():
     assert "sample_from_reference" in GENERATION_RULES_REGISTRY
     assert "fk_from_parent" in GENERATION_RULES_REGISTRY
 
+
 ###
 # Testing SampleFromReference
 ###
+
 
 def test_sample_from_reference_happy_path(employees_df, departments_df, test_seed):
     rule = core_rules.SampleFromReference(
@@ -36,17 +39,22 @@ def test_sample_from_reference_happy_path(employees_df, departments_df, test_see
 
     out = rule.apply(
         df=employees_df,
-       runtime=cast(Any, runtime),
+        runtime=cast(Any, runtime),
         target_col="department_id",
     )
 
     assert out.count() == employees_df.count()
     assert out.schema["department_id"].dataType == T.IntegerType()
 
-    ref_ids = {r["department_id"] for r in departments_df.select("department_id").distinct().collect()}
-    sampled_ids = {r["department_id"] for r in out.select("department_id").distinct().collect()}
+    ref_ids = {
+        r["department_id"]
+        for r in departments_df.select("department_id").distinct().collect()
+    }
+    sampled_ids = {
+        r["department_id"] for r in out.select("department_id").distinct().collect()
+    }
     assert sampled_ids.issubset(ref_ids)
-    assert len(sampled_ids) >= 1 
+    assert len(sampled_ids) >= 1
 
 
 def test_sample_from_reference_missing_runtime_raises(employees_df, test_seed):
@@ -73,9 +81,8 @@ def test_sample_from_reference_missing_reference_key_raises(
     )
     runtime = MockRuntime(references={"departments": departments_df})
     with pytest.raises(ValueError) as exc:
-        rule.apply(employees_df,runtime=cast(Any, runtime), target_col="department_id")
+        rule.apply(employees_df, runtime=cast(Any, runtime), target_col="department_id")
     assert "not found" in str(exc.value).lower()
-
 
 
 def test_sample_from_reference_missing_params_raises_value_error(
@@ -94,4 +101,3 @@ def test_sample_from_reference_missing_params_raises_value_error(
             runtime=cast(Any, runtime),
             target_col="department_id",
         )
-

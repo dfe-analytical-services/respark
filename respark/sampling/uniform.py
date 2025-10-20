@@ -2,6 +2,7 @@ from typing import Dict, Tuple
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as F, types as T
 from respark.sampling import ParentIndexArtifact, build_parent_index
+from respark.random import RNG
 
 
 class UniformParentSampler:
@@ -63,7 +64,7 @@ class UniformParentSampler:
         self,
         child_df: DataFrame,
         artifact: ParentIndexArtifact,
-        rng,
+        rng: RNG,
         out_col: str,
         out_type: T.DataType,
         salt_partition: str = "part",  # independent substream salts
@@ -96,7 +97,7 @@ class UniformParentSampler:
 
         """
         if artifact.total == 0:
-            # No parent values to sample from → NULLs
+            # No parent values to sample from, so return a column of NULLs
             return child_df.withColumn(out_col, F.lit(None).cast(out_type))
 
         # 1) Choose partition via range-join to the CDF

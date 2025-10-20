@@ -1,6 +1,6 @@
 import pprint
 from typing import Any, List, Dict, Iterable, Optional
-from pyspark.sql import DataFrame, functions as F
+from pyspark.sql import DataFrame
 
 from respark.sampling import UniformParentSampler
 from respark.profile import (
@@ -71,25 +71,6 @@ class ResparkRuntime:
         self.profile = profile_schema(table_map)
         return self.profile
 
-    def deep_profile_column(
-        self,
-        source_name: str,
-        column_name: str,
-        register_as: Optional[str] = None,
-        limit: Optional[int] = None,
-    ) -> DataFrame:
-        """
-        Deep profile a column to inspect for distinct values and their count.
-        Warning: This will reveal and persist actual values.
-        """
-        df = self.sources[source_name]
-        deep_profile = df.groupBy(column_name).count().orderBy(F.desc("count"))
-        if limit is not None:
-            deep_profile = deep_profile.limit(int(limit))
-        if register_as:
-            self.register_reference(register_as, deep_profile)
-        return deep_profile
-
     def get_table_profile(self, table_name: str) -> Optional[TableProfile]:
         """
         Returns a TableProfile for a given table_name
@@ -104,7 +85,7 @@ class ResparkRuntime:
 
     def add_fk_constraint(
         self, pk_table: str, pk_col: str, fk_table: str, fk_col: str
-    ) -> None:
+    ) -> str:
         """
         Add a new FK constraint. Returns the generated name.
         Raises ValueError if a constraint with the same name already exists.
@@ -120,8 +101,8 @@ class ResparkRuntime:
                 pk_table=pk_table, pk_column=pk_col, fk_table=fk_table, fk_column=fk_col
             )
         )
-        # Invalidate cached layers
         self._layers = None
+        return name
 
     def remove_fk_constraint(self, fk_name: str) -> None:
         """
@@ -130,16 +111,16 @@ class ResparkRuntime:
         for i, constraint in enumerate(self.fk_constraints):
             if constraint.name == fk_name:
                 del self.fk_constraints[i]
-                # Invalidate cached layers
                 self._layers = None
+                return
 
         raise KeyError(f"No constraint with name '{fk_name}' is currently stored")
 
     def list_fk_constraints(self) -> List[FkConstraint]:
         """
-        Return a sorted list of constraints.
+        Return current list of constraints.
         """
-        return sorted(self.fk_constraints, key=lambda c: c.name)
+        return self.fk_constraints
 
     def print_fk_constraints(self) -> None:
         pprint.pprint([c.to_dict() for c in self.list_fk_constraints()])

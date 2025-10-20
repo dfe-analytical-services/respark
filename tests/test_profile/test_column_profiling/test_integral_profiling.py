@@ -35,6 +35,11 @@ def test_profiling_for_each_integral_subtype(
     assert profile.mean_value == pytest.approx(3.0, abs=0)
     assert profile.default_rule() == expected_default_rule
 
+    params = profile.type_specific_params()
+    assert params["min_value"] == 1
+    assert params["max_value"] == 5
+    assert params["mean_value"] == pytest.approx(3.0, abs=0)
+
 
 def test_non_integral_type_raises_error(spark):
     schema = T.StructType(
@@ -44,12 +49,3 @@ def test_non_integral_type_raises_error(spark):
 
     with pytest.raises(TypeError):
         profile_integral_column(df, "some_string_field")
-
-
-def test_integral_type_specific_params(employees_df):
-    profile = profile_integral_column(employees_df, "department_id")
-    integral_params = profile.type_specific_params()
-
-    assert integral_params["min_value"] == 1
-    assert integral_params["max_value"] == 5
-    assert integral_params["mean_value"] == pytest.approx(3.0, rel=0, abs=0)
