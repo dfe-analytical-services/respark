@@ -106,7 +106,6 @@ class ResparkRuntime:
         self._layers = None
         return name
 
-
     def remove_fk_constraint(self, fk_name: str) -> None:
         """
         Remove by name. Raise KeyError if not found.

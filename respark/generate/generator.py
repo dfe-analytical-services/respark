@@ -46,7 +46,9 @@ class SynthSchemaGenerator:
         self.runtime = runtime
 
     def generate_synthetic_schema(
-        self, schema_gen_plan: SchemaGenerationPlan, fk_constraints: Dict[str,FkConstraint]
+        self,
+        schema_gen_plan: SchemaGenerationPlan,
+        fk_constraints: Dict[str, FkConstraint],
     ) -> Dict[str, DataFrame]:
 
         table_plan_map: Dict[str, TableGenerationPlan] = {

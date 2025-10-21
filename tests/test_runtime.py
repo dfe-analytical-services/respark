@@ -55,7 +55,6 @@ def test_add_list_remove_fk_constraints(test_runtime, employees_df, sales_df):
     names = test_runtime.list_fk_constraints()
     assert fk_name in names
 
-
     # Test raising on duplicate add:
     with pytest.raises(ValueError):
         test_runtime.add_fk_constraint(
@@ -69,7 +68,6 @@ def test_add_list_remove_fk_constraints(test_runtime, employees_df, sales_df):
     # Test raising on removing again
     with pytest.raises(KeyError):
         test_runtime.remove_fk_constraint(fk_name)
-
 
 
 ###
@@ -107,8 +105,6 @@ def test_create_generation_plan_and_layers_happy_path(
     # Check pk -> fk parent/child layer order is respected
     index_by_table = {tbl: i for i, layer in enumerate(layers) for tbl in layer}
     assert index_by_table["employees"] <= index_by_table["sales"]
-
-
 
 
 def test_cycle_in_fk_raises_runtime_error(test_runtime, employees_df, sales_df):
@@ -155,7 +151,11 @@ def test_generate_uses_synth_schema_generator(monkeypatch, test_runtime, employe
 
     class FakeSynthSchemaGenerator:
         def __init__(self, spark, references=None, runtime=None, **kwargs):
-            calls["init"] = {"references": references, "runtime": runtime, "kwargs": kwargs}
+            calls["init"] = {
+                "references": references,
+                "runtime": runtime,
+                "kwargs": kwargs,
+            }
 
         def generate_synthetic_schema(self, schema_gen_plan, fk_constraints):
             calls["args"] = (schema_gen_plan, fk_constraints)

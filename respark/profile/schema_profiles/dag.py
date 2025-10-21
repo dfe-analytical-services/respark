@@ -32,7 +32,7 @@ class DAG:
 
     @classmethod
     def from_fk_constraints(
-        cls, table_names: Iterable[Table], constraints: Dict[str,FkConstraint]
+        cls, table_names: Iterable[Table], constraints: Dict[str, FkConstraint]
     ) -> Self:
         """
         Build a DAG restricted to the given table_names. Any constraint that

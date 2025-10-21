@@ -81,10 +81,12 @@ class ForeignKeyFromParent(GenerationRule):
             "ForeignKeyFromParent is relational; use apply(df, runtime, target_col)."
         )
 
-
-    def _find_fk_constraint(self, runtime: "ResparkRuntime", fk_table: str, fk_column: str) -> "FkConstraint":
+    def _find_fk_constraint(
+        self, runtime: "ResparkRuntime", fk_table: str, fk_column: str
+    ) -> "FkConstraint":
         matches = [
-            c for c in runtime.fk_constraints.values()
+            c
+            for c in runtime.fk_constraints.values()
             if c.fk_table == fk_table and c.fk_column == fk_column
         ]
         if not matches:
@@ -97,7 +99,6 @@ class ForeignKeyFromParent(GenerationRule):
             )
         return matches[0]
 
-
     def apply(
         self, df: DataFrame, runtime: Optional["ResparkRuntime"], target_col: str
     ) -> DataFrame:
@@ -105,9 +106,13 @@ class ForeignKeyFromParent(GenerationRule):
             raise RuntimeError("ForeignKeyFromParent requires runtime.")
         fk_table = self.params.get("__table")
         if not fk_table:
-            raise ValueError("Missing '__table' in rule params; generator should inject it.")
+            raise ValueError(
+                "Missing '__table' in rule params; generator should inject it."
+            )
 
-        constraint = self._find_fk_constraint(runtime, fk_table=fk_table, fk_column=target_col)
+        constraint = self._find_fk_constraint(
+            runtime, fk_table=fk_table, fk_column=target_col
+        )
 
         if constraint.fk_column != target_col:
             raise ValueError(
@@ -126,7 +131,7 @@ class ForeignKeyFromParent(GenerationRule):
             cache_key=(constraint.pk_table, constraint.pk_column),
             parent_df=parent_df,
             parent_col=constraint.pk_column,
-            distinct=False,  
+            distinct=False,
         )
 
         rng = self.rng()
@@ -143,4 +148,3 @@ class ForeignKeyFromParent(GenerationRule):
             salt_partition=f"{salt}:part",
             salt_position=f"{salt}:pos",
         )
-
