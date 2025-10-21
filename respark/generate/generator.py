@@ -1,8 +1,14 @@
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List, TYPE_CHECKING
 import hashlib
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from respark.plan import SchemaGenerationPlan, TableGenerationPlan
 from respark.rules import get_generation_rule
-from pyspark.sql import SparkSession, DataFrame, Column, functions as F, types as T
+from respark.profile import FkConstraint, DAG
+from pyspark.sql import SparkSession, DataFrame, functions as F, types as T
+
+
+if TYPE_CHECKING:
+    from respark.runtime import ResparkRuntime
 
 
 def _create_stable_seed(base_seed: int, *tokens: Any) -> int:
@@ -30,51 +36,79 @@ class SynthSchemaGenerator:
     def __init__(
         self,
         spark: SparkSession,
+        runtime: Optional["ResparkRuntime"],
         seed: int = 18151210,
         references: Optional[Dict[str, DataFrame]] = None,
     ):
         self.spark = spark
         self.seed = int(seed)
         self.references = references or {}
+        self.runtime = runtime
 
     def generate_synthetic_schema(
-        self, schema_gen_plan: SchemaGenerationPlan
+        self,
+        schema_gen_plan: SchemaGenerationPlan,
+        fk_constraints: Dict[str, FkConstraint],
     ) -> Dict[str, DataFrame]:
+
+        table_plan_map: Dict[str, TableGenerationPlan] = {
+            tgp.name: tgp for tgp in schema_gen_plan.tables
+        }
+        table_names = list(table_plan_map.keys())
 
         synth_schema: Dict[str, DataFrame] = {}
 
-        for table_plan in schema_gen_plan.tables:
-            table_generator = SynthTableGenerator(
-                spark_session=self.spark,
-                table_gen_plan=table_plan,
-                seed=self.seed,
-                references=self.references,
-            )
-            synth_schema[table_generator.table_gen_plan.name] = (
-                table_generator.generate_synthetic_table()
-            )
+        dag = DAG.from_fk_constraints(table_names, fk_constraints)
+        layers = dag.compute_layers()
+
+        for layer in layers:
+            with ThreadPoolExecutor() as ex:
+                futures = {
+                    ex.submit(self._generate_table, table_plan_map[name]): name
+                    for name in layer
+                }
+
+                for fut in as_completed(futures):
+                    name = futures[fut]
+                    df = fut.result()
+                    synth_schema[name] = df
+                    if self.runtime is not None:
+                        self.runtime.generated_synthetics[name] = df
 
         return synth_schema
+
+    def _generate_table(self, table_plan: TableGenerationPlan) -> DataFrame:
+        tg = SynthTableGenerator(
+            spark_session=self.spark,
+            table_gen_plan=table_plan,
+            seed=self.seed,
+            references=self.references,
+            runtime=self.runtime,
+        )
+        return tg.generate_synthetic_table()
 
 
 class SynthTableGenerator:
     def __init__(
         self,
         spark_session: SparkSession,
+        runtime: Optional["ResparkRuntime"],
         table_gen_plan: TableGenerationPlan,
         seed: int = 18151210,
         references: Optional[Dict[str, DataFrame]] = None,
     ):
         self.spark = spark_session
+        self.runtime = runtime
         self.table_gen_plan = table_gen_plan
         self.table_name = table_gen_plan.name
         self.row_count = table_gen_plan.row_count
         self.seed = seed
         self.references = references or {}
 
-    def generate_synthetic_table(self):
-        synth_df = self.spark.range(0, self.row_count, 1)
-        synth_df = synth_df.withColumnRenamed("id", "__row_idx")
+    def generate_synthetic_table(self) -> DataFrame:
+        synth_df = self.spark.range(0, self.row_count, 1).withColumnRenamed(
+            "id", "__row_idx"
+        )
 
         for column_plan in self.table_gen_plan.columns:
             col_seed = _create_stable_seed(
@@ -89,22 +123,23 @@ class SynthTableGenerator:
                 "__row_idx": F.col("__row_idx"),
             }
 
-            if column_plan.rule == "reuse_from_set":
-                ref_key = exec_params["reference_df"]
-                exec_params["reference_df"] = self.references[ref_key]
-                exec_params.setdefault("reference_col", column_plan.name)
-
             rule = get_generation_rule(column_plan.rule, **exec_params)
-            col_expr: Column = rule.generate_column()
 
             try:
                 target_dtype = TYPE_DISPATCH[column_plan.data_type]
             except KeyError:
-                raise ValueError(f"Unsupported data type: '{column_plan.data_type}' ")
+                raise ValueError(f"Unsupported data type: '{column_plan.data_type}'")
 
-            col_expr = col_expr.cast(target_dtype)
+            if column_plan.name not in synth_df.columns:
+                synth_df = synth_df.withColumn(
+                    column_plan.name, F.lit(None).cast(target_dtype)
+                )
 
-            synth_df = synth_df.withColumn(column_plan.name, col_expr)
+            synth_df = rule.apply(synth_df, self.runtime, target_col=column_plan.name)
+
+            synth_df = synth_df.withColumn(
+                column_plan.name, F.col(column_plan.name).cast(target_dtype)
+            )
 
         ordered_cols = [cgp.name for cgp in self.table_gen_plan.columns]
         return synth_df.select("__row_idx", *ordered_cols).drop("__row_idx")

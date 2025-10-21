@@ -1,8 +1,7 @@
 from respark import ResparkRuntime
 
-def test_synthetic_schema_table_names(spark, 
-    employees_df, departments_df, sales_df
-):
+
+def test_synthetic_schema_table_names(spark, employees_df, departments_df, sales_df):
     mock_runtime = ResparkRuntime(spark)
     mock_runtime.register_source("employees", employees_df)
     mock_runtime.register_reference("departments", departments_df)

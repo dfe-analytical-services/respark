@@ -1,6 +1,9 @@
 # Distribution
 dist/
 
+# Environments
+.env
+
 # Virtual environments
 .venv/
 

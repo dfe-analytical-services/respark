@@ -1,7 +1,8 @@
 from typing import Literal
 from pyspark.sql import Column
-from .base_rule import register_generation_rule, GenerationRule
-from .numeric_utils import INTEGRAL_BOUNDS, INTEGRAL_CAST
+from .core_rules import register_generation_rule, GenerationRule
+from respark.core import INTEGRAL_BOUNDS, INTEGRAL_CAST
+from respark.random import randint_int
 
 
 class BaseIntegralRule(GenerationRule):
@@ -15,7 +16,7 @@ class BaseIntegralRule(GenerationRule):
         max_value = self.params.get("max_value", default_max)
 
         rng = self.rng()
-        col = rng.rand_int(min_value, max_value)
+        col = randint_int(rng, min_value, max_value)
         return col.cast(INTEGRAL_CAST[self.spark_subtype])
 
 

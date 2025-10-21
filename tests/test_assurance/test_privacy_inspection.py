@@ -5,8 +5,8 @@ from respark import ResparkRuntime
 from respark.layer_assurance.inspect_privacy import ColumnMatchesCheck, PrivacyParams
 
 
-def test_ColumnMatchesCheck_passes_valid_schemas(spark,
-    employees_df, departments_df, sales_df
+def test_ColumnMatchesCheck_passes_valid_schemas(
+    spark, employees_df, departments_df, sales_df
 ):
     mock_runtime = ResparkRuntime(spark)
     mock_runtime.register_source("employees", employees_df)
@@ -35,8 +35,8 @@ def test_ColumnMatchesCheck_passes_valid_schemas(spark,
     assert result.theme == "Privacy"
 
 
-def test_ColumnMatchesCheck_fails_invalid_schemas(spark,
-    employees_df, departments_df, sales_df
+def test_ColumnMatchesCheck_fails_invalid_schemas(
+    spark, employees_df, departments_df, sales_df
 ):
     mock_runtime = ResparkRuntime(spark)
     mock_runtime.register_source("employees", employees_df)

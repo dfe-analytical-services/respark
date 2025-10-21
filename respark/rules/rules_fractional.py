@@ -1,7 +1,7 @@
 from typing import Literal
 from pyspark.sql import Column, functions as F
-from .base_rule import register_generation_rule, GenerationRule
-from .numeric_utils import FRACTIONAL_BOUNDS, FRACTIONAL_CAST
+from .core_rules import register_generation_rule, GenerationRule
+from respark.core import FRACTIONAL_BOUNDS, FRACTIONAL_CAST
 
 
 class BaseFractionalRule(GenerationRule):

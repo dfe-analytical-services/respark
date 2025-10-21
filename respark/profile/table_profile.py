@@ -1,5 +1,5 @@
-from dataclasses import dataclass, field, asdict
-from typing import Dict, Any, Union
+from dataclasses import dataclass, field
+from typing import Dict
 from pyspark.sql import DataFrame, types as T
 
 from .column_profiles import (

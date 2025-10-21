@@ -1,6 +1,7 @@
 from decimal import Decimal
 from pyspark.sql import Column, functions as F, types as T
-from .base_rule import register_generation_rule, GenerationRule
+from .core_rules import register_generation_rule, GenerationRule
+from respark.random import randint_long
 
 
 @register_generation_rule("random_decimal")
@@ -17,8 +18,8 @@ class RandomDecimalRule(GenerationRule):
         scaled_max = int(Decimal(max_value) * multiplier)
 
         rng = self.rng()
-        scaled = rng.rand_long(
-            scaled_min, scaled_max, "random_decimal", precision, scale
+        scaled = randint_long(
+            rng, scaled_min, scaled_max, "random_decimal", precision, scale
         )
 
         scaled_dec = scaled.cast(T.DecimalType(38, 0))

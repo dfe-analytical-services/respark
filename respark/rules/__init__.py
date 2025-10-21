@@ -2,7 +2,7 @@ from importlib import import_module
 from pkgutil import iter_modules
 from pathlib import Path
 
-from .base_rule import (
+from .registry import (
     GenerationRule,
     register_generation_rule,
     get_generation_rule,
