@@ -81,21 +81,39 @@ class ForeignKeyFromParent(GenerationRule):
             "ForeignKeyFromParent is relational; use apply(df, runtime, target_col)."
         )
 
+
+    def _find_fk_constraint(self, runtime: "ResparkRuntime", fk_table: str, fk_column: str) -> "FkConstraint":
+        matches = [
+            c for c in runtime.fk_constraints.values()
+            if c.fk_table == fk_table and c.fk_column == fk_column
+        ]
+        if not matches:
+            raise ValueError(f"No FK constraint found for {fk_table}.{fk_column}")
+        if len(matches) > 1:
+            names = [c.name for c in matches]
+            raise ValueError(
+                f"Multiple FK constraints found for {fk_table}.{fk_column}: {names}. "
+                f"Disambiguate (e.g., by passing a constraint_name) or consolidate constraints."
+            )
+        return matches[0]
+
+
     def apply(
         self, df: DataFrame, runtime: Optional["ResparkRuntime"], target_col: str
     ) -> DataFrame:
         if runtime is None:
-            raise RuntimeError(
-                "ForeignKeyFromParent requires runtime (synthetics and distributed chooser)."
-            )
+            raise RuntimeError("ForeignKeyFromParent requires runtime.")
+        fk_table = self.params.get("__table")
+        if not fk_table:
+            raise ValueError("Missing '__table' in rule params; generator should inject it.")
 
-        constraint: FkConstraint = self.params["constraint"]
+        constraint = self._find_fk_constraint(runtime, fk_table=fk_table, fk_column=target_col)
 
         if constraint.fk_column != target_col:
             raise ValueError(
-                f"Constraint targets {constraint.fk_table}.{constraint.fk_column} but rule is populating {target_col}"
+                f"Constraint targets {constraint.fk_table}.{constraint.fk_column} "
+                f"but rule is populating {target_col}"
             )
-
         if constraint.pk_table not in runtime.generated_synthetics:
             raise ValueError(
                 f"Synthetic parent table '{constraint.pk_table}' not present. "
@@ -108,18 +126,21 @@ class ForeignKeyFromParent(GenerationRule):
             cache_key=(constraint.pk_table, constraint.pk_column),
             parent_df=parent_df,
             parent_col=constraint.pk_column,
-            distinct=False,  # parent PK should already be unique
+            distinct=False,  
         )
 
         rng = self.rng()
+
         out_type: T.DataType = df.schema[target_col].dataType
 
+        salt = constraint.name or f"{constraint.fk_table}.{constraint.fk_column}"
         return sampler.assign_uniform_from_artifact(
             child_df=df,
             artifact=artifact,
             rng=rng,
             out_col=target_col,
             out_type=out_type,
-            salt_partition=f"{constraint.name}:part",
-            salt_position=f"{constraint.name}:pos",
+            salt_partition=f"{salt}:part",
+            salt_position=f"{salt}:pos",
         )
+

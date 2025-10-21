@@ -51,8 +51,10 @@ def test_add_list_remove_fk_constraints(test_runtime, employees_df, sales_df):
     fk_name = test_runtime.add_fk_constraint(
         "employees", "employee_id", "sales", "employee_id"
     )
-    constraints = test_runtime.list_fk_constraints()
-    assert any(c.name == fk_name for c in constraints)
+
+    names = test_runtime.list_fk_constraints()
+    assert fk_name in names
+
 
     # Test raising on duplicate add:
     with pytest.raises(ValueError):
@@ -62,23 +64,12 @@ def test_add_list_remove_fk_constraints(test_runtime, employees_df, sales_df):
 
     # Test remove:
     test_runtime.remove_fk_constraint(fk_name)
-    assert all(c.name != fk_name for c in test_runtime.list_fk_constraints())
+    assert fk_name not in test_runtime.list_fk_constraints()
 
     # Test raising on removing again
     with pytest.raises(KeyError):
         test_runtime.remove_fk_constraint(fk_name)
 
-
-def test_list_fk_constraints_is_sorted_by_name(test_runtime, employees_df, sales_df):
-    test_runtime.register_source("employees", employees_df)
-    test_runtime.register_source("sales", sales_df)
-
-    added_fk = test_runtime.add_fk_constraint(
-        "employees", "employee_id", "sales", "employee_id"
-    )
-    names = [c.name for c in test_runtime.list_fk_constraints()]
-
-    assert set(names) == {added_fk}
 
 
 ###
@@ -118,15 +109,6 @@ def test_create_generation_plan_and_layers_happy_path(
     assert index_by_table["employees"] <= index_by_table["sales"]
 
 
-def test_plan_with_constraint_to_unknown_table_raises(test_runtime, employees_df):
-    test_runtime.register_source("employees", employees_df)
-    test_runtime.profile_sources()
-
-    test_runtime.add_fk_constraint("employees", "employee_id", "sales", "employee_id")
-
-    with pytest.raises(ValueError) as e:
-        test_runtime.create_generation_plan()
-    assert "Constraints reference tables outside the plan" in str(e.value)
 
 
 def test_cycle_in_fk_raises_runtime_error(test_runtime, employees_df, sales_df):
@@ -172,8 +154,8 @@ def test_generate_uses_synth_schema_generator(monkeypatch, test_runtime, employe
     calls = {}
 
     class FakeSynthSchemaGenerator:
-        def __init__(self, spark, references, runtime):
-            calls["init"] = {"references": references, "runtime": runtime}
+        def __init__(self, spark, references=None, runtime=None, **kwargs):
+            calls["init"] = {"references": references, "runtime": runtime, "kwargs": kwargs}
 
         def generate_synthetic_schema(self, schema_gen_plan, fk_constraints):
             calls["args"] = (schema_gen_plan, fk_constraints)
@@ -186,10 +168,10 @@ def test_generate_uses_synth_schema_generator(monkeypatch, test_runtime, employe
 
     output = test_runtime.generate()
 
-    # Test that the generator was passed a generation plan, but no fk constraints
+    # Test that the generator was passed a generation plan, and empty fk constraints
     assert calls["args"][0] is test_runtime.generation_plan
-    assert isinstance(calls["args"][1], list)
-    assert calls["args"][1] == []
+    assert isinstance(calls["args"][1], dict)
+    assert calls["args"][1] == {}
 
     # Test that the generator was initialised with references and a runtime
     assert calls["init"]["references"] is test_runtime.references

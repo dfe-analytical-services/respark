@@ -32,7 +32,7 @@ class DAG:
 
     @classmethod
     def from_fk_constraints(
-        cls, table_names: Iterable[Table], constraints: Iterable[FkConstraint]
+        cls, table_names: Iterable[Table], constraints: Dict[str,FkConstraint]
     ) -> Self:
         """
         Build a DAG restricted to the given table_names. Any constraint that
@@ -40,7 +40,7 @@ class DAG:
         """
         nodes: Set[Table] = set(table_names)
         edges: Set[Edge] = set()
-        for c in constraints:
+        for c in constraints.values():
             if c.pk_table in nodes and c.fk_table in nodes:
                 edges.add((c.pk_table, c.fk_table))
 

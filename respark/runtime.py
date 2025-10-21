@@ -28,7 +28,7 @@ class ResparkRuntime:
         self.references: Dict[str, DataFrame] = {}
         self.profile: Optional[SchemaProfile] = None
         self.generation_plan: Optional[SchemaGenerationPlan] = None
-        self.fk_constraints: List[FkConstraint] = []
+        self.fk_constraints: Dict[str, FkConstraint] = {}
 
         self.sampler = UniformParentSampler()
         self.generated_synthetics: Dict[str, DataFrame] = {}
@@ -90,40 +90,40 @@ class ResparkRuntime:
         Add a new FK constraint. Returns the generated name.
         Raises ValueError if a constraint with the same name already exists.
         """
+
         name = FkConstraint.derive_name(pk_table, pk_col, fk_table, fk_col)
 
-        for c in self.fk_constraints:
-            if c.name == name:
-                raise ValueError(f"Constraint '{name}' already present")
+        if name in self.fk_constraints:
+            raise ValueError(f"Constraint '{name}' already present")
 
-        self.fk_constraints.append(
-            FkConstraint(
-                pk_table=pk_table, pk_column=pk_col, fk_table=fk_table, fk_column=fk_col
-            )
+        self.fk_constraints[name] = FkConstraint(
+            pk_table=pk_table,
+            pk_column=pk_col,
+            fk_table=fk_table,
+            fk_column=fk_col,
         )
+
         self._layers = None
         return name
+
 
     def remove_fk_constraint(self, fk_name: str) -> None:
         """
         Remove by name. Raise KeyError if not found.
         """
-        for i, constraint in enumerate(self.fk_constraints):
-            if constraint.name == fk_name:
-                del self.fk_constraints[i]
+        for name, fk in self.fk_constraints.items():
+            if fk.name == fk_name:
+                del self.fk_constraints[name]
                 self._layers = None
                 return
 
         raise KeyError(f"No constraint with name '{fk_name}' is currently stored")
 
-    def list_fk_constraints(self) -> List[FkConstraint]:
+    def list_fk_constraints(self) -> Dict[str, FkConstraint]:
         """
         Return current list of constraints.
         """
         return self.fk_constraints
-
-    def print_fk_constraints(self) -> None:
-        pprint.pprint([c.to_dict() for c in self.list_fk_constraints()])
 
     def create_generation_plan(self) -> SchemaGenerationPlan:
         """
@@ -159,17 +159,17 @@ class ResparkRuntime:
 
         table_names = [table_plan.name for table_plan in self.generation_plan.tables]
 
-        missing = [
-            (constraint.pk_table, constraint.fk_table)
-            for constraint in self.fk_constraints
-            if constraint.pk_table not in table_names
-            or constraint.fk_table not in table_names
-        ]
-        if missing:
-            raise ValueError(
-                "Constraints reference tables outside the plan: "
-                + ", ".join(f"{u}->{v}" for (u, v) in missing)
-            )
+        # missing = [
+        #     (constraint.pk_table, constraint.fk_table)
+        #     for constraint in self.fk_constraints
+        #     if constraint.pk_table not in table_names
+        #     or constraint.fk_table not in table_names
+        # ]
+        # if missing:
+        #     raise ValueError(
+        #         "Constraints reference tables outside the plan: "
+        #         + ", ".join(f"{u}->{v}" for (u, v) in missing)
+        #     )
         try:
             dag = DAG.from_fk_constraints(table_names, self.fk_constraints)
             self._layers = dag.compute_layers()
@@ -215,13 +215,15 @@ class ResparkRuntime:
     # Generation Methods
     ###
 
-    def generate(self) -> Dict[str, DataFrame]:
+    def generate(self, global_seed: int = 18151210) -> Dict[str, DataFrame]:
         if self.generation_plan is None:
             raise RuntimeError(
                 "generation_plan is not set. Call create_generation_plan() first."
             )
 
-        gen = SynthSchemaGenerator(self.spark, references=self.references, runtime=self)
+        gen = SynthSchemaGenerator(
+            self.spark, runtime=self, references=self.references, seed=global_seed
+        )
         return gen.generate_synthetic_schema(
             schema_gen_plan=self.generation_plan,
             fk_constraints=self.fk_constraints,

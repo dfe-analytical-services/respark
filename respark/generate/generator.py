@@ -46,7 +46,7 @@ class SynthSchemaGenerator:
         self.runtime = runtime
 
     def generate_synthetic_schema(
-        self, schema_gen_plan: SchemaGenerationPlan, fk_constraints: List[FkConstraint]
+        self, schema_gen_plan: SchemaGenerationPlan, fk_constraints: Dict[str,FkConstraint]
     ) -> Dict[str, DataFrame]:
 
         table_plan_map: Dict[str, TableGenerationPlan] = {
@@ -122,13 +122,19 @@ class SynthTableGenerator:
             }
 
             rule = get_generation_rule(column_plan.rule, **exec_params)
-            synth_df = rule.apply(synth_df, self.runtime, target_col=column_plan.name)
 
-            # Enforce declared Spark dtype
             try:
                 target_dtype = TYPE_DISPATCH[column_plan.data_type]
             except KeyError:
                 raise ValueError(f"Unsupported data type: '{column_plan.data_type}'")
+
+            if column_plan.name not in synth_df.columns:
+                synth_df = synth_df.withColumn(
+                    column_plan.name, F.lit(None).cast(target_dtype)
+                )
+
+            synth_df = rule.apply(synth_df, self.runtime, target_col=column_plan.name)
+
             synth_df = synth_df.withColumn(
                 column_plan.name, F.col(column_plan.name).cast(target_dtype)
             )
