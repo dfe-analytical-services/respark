@@ -29,6 +29,8 @@ TYPE_DISPATCH = {
     "int": T.IntegerType(),
     "long": T.LongType(),
     "string": T.StringType(),
+    "timestamp_ltz": T.TimestampType(),
+    "timestamp_ntz": T.TimestampNTZType(),
 }
 
 

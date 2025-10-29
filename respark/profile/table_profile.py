@@ -5,7 +5,7 @@ from pyspark.sql import DataFrame, types as T
 from .column_profiles import (
     BaseColumnProfile,
     profile_boolean_column,
-    profile_date_column,
+    profile_datetime_column,
     profile_decimal_column,
     profile_fractional_column,
     profile_integral_column,
@@ -17,11 +17,13 @@ TYPE_PROFILE_DISPATCH = {
     T.BooleanType: profile_boolean_column,
     T.DoubleType: profile_fractional_column,
     T.DecimalType: profile_decimal_column,
-    T.DateType: profile_date_column,
+    T.DateType: profile_datetime_column,
     T.FloatType: profile_fractional_column,
     T.IntegerType: profile_integral_column,
     T.LongType: profile_integral_column,
     T.StringType: profile_string_column,
+    T.TimestampType: profile_datetime_column,
+    T.TimestampNTZType: profile_datetime_column,
 }
 
 
