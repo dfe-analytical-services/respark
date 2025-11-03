@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field, asdict
 from typing import Dict, Any, Union
-from pyspark.sql import DataFrame ,types as T
+from pyspark.sql import DataFrame, types as T
 
 from .column_profiles import (
     BaseColumnProfile,
@@ -30,6 +30,7 @@ TYPE_PROFILE_DISPATCH = {
 # Table Profiling
 ###
 
+
 @dataclass(slots=True)
 class TableProfile:
     name: str
@@ -55,9 +56,11 @@ def profile_table(df: DataFrame, table_name: str) -> TableProfile:
 
     return TableProfile(name=table_name, row_count=df.count(), columns=col_profiles)
 
+
 ###
 # Schema Profiling
 ###
+
 
 @dataclass(slots=True)
 class SchemaProfile:
