@@ -9,13 +9,16 @@ from respark.sampling import UniformParentSampler
 if TYPE_CHECKING:
     from respark.runtime import ResparkRuntime
 
+
 @register_generation_rule("const_literal")
 class ConstLiteralRule(GenerationRule):
     """
     A simple rule to allow populating a column with one expected field
     """
+
     def generate_column(self):
         return F.lit(self.params["value"])
+
 
 @register_generation_rule("sample_from_reference")
 class SampleFromReference(GenerationRule):

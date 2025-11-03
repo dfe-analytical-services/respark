@@ -9,11 +9,7 @@ from .registry import (
     GENERATION_RULES_REGISTRY,
 )
 
-from .conditional_rules import (
-    ThenAction,
-    WhenThenConditional,
-    DefaultCase
-)
+from .conditional_rules import ThenAction, WhenThenConditional, DefaultCase
 
 
 def _auto_import_rules():

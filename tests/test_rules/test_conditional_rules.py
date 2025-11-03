@@ -1,16 +1,25 @@
 import pytest
 from pyspark.sql import functions as F, types as T
-from respark.rules.conditional_rules import CaseWhenRule, WhenThenConditional, ThenAction, DefaultCase
+from respark.rules.conditional_rules import (
+    CaseWhenRule,
+    WhenThenConditional,
+    ThenAction,
+    DefaultCase,
+)
+
 
 def create_test_parent_col(spark, rows, schema):
     return spark.createDataFrame(rows, schema).withColumn(
         "__row_idx", F.monotonically_increasing_id()
     )
 
+
 def test_expr_branches_first_match_wins(spark):
     rows = [(95,), (80,), (55,), (40,)]
 
-    parent_col_df = create_test_parent_col(spark, rows, T.StructType([T.StructField("score", T.IntegerType())]))
+    parent_col_df = create_test_parent_col(
+        spark, rows, T.StructType([T.StructField("score", T.IntegerType())])
+    )
 
     rule = CaseWhenRule(
         branches=[
@@ -27,18 +36,24 @@ def test_expr_branches_first_match_wins(spark):
 
     output = rule.apply(parent_col_df, runtime=None, target_col="grade")
     vals = [r["grade"] for r in output.select("grade").orderBy("score").collect()]
-    assert vals == ["D", "C", "B", "A"] 
+    assert vals == ["D", "C", "B", "A"]
 
 
 def test_then_rule_branch_invokes_subrule_and_params_flow(spark):
     rows = [(True,), (False,), (True,)]
-    parent_col_df = create_test_parent_col(spark, rows, T.StructType([T.StructField("is_current_employee", T.BooleanType())]))
+    parent_col_df = create_test_parent_col(
+        spark,
+        rows,
+        T.StructType([T.StructField("is_current_employee", T.BooleanType())]),
+    )
 
     rule = CaseWhenRule(
         branches=[
             WhenThenConditional(
                 "`is_current_employee` = TRUE",
-                ThenAction(then_rule="const_literal", then_params={"value": "some_string"}),
+                ThenAction(
+                    then_rule="const_literal", then_params={"value": "some_string"}
+                ),
             ),
         ],
         default_case=DefaultCase(then=ThenAction(then_expr="NULL")),
@@ -49,7 +64,11 @@ def test_then_rule_branch_invokes_subrule_and_params_flow(spark):
     )
 
     output = rule.apply(parent_col_df, runtime=None, target_col="child_col")
-    assert [r["child_col"] for r in output.select("child_col").collect()] == ["some_string", None, "some_string"]
+    assert [r["child_col"] for r in output.select("child_col").collect()] == [
+        "some_string",
+        None,
+        "some_string",
+    ]
 
 
 def test_then_expr_can_reference_other_columns(spark):
@@ -84,14 +103,24 @@ def test_then_expr_can_reference_other_columns(spark):
 
 def test_four_branches_order_and_exclusivity(spark):
     rows = [("critical",), ("high",), ("medium",), ("low",), ("unknown",)]
-    parent_col_df = create_test_parent_col(spark, rows, T.StructType([T.StructField("warning_level", T.StringType())]))
+    parent_col_df = create_test_parent_col(
+        spark, rows, T.StructType([T.StructField("warning_level", T.StringType())])
+    )
 
     rule = CaseWhenRule(
         branches=[
-            WhenThenConditional("`warning_level` = 'critical'", ThenAction(then_expr="'Level_1'")),
-            WhenThenConditional("`warning_level` = 'high'",     ThenAction(then_expr="'Level_2'")),
-            WhenThenConditional("`warning_level` = 'medium'",   ThenAction(then_expr="'Level_3'")),
-            WhenThenConditional("`warning_level` = 'low'",      ThenAction(then_expr="'Level_4'")),
+            WhenThenConditional(
+                "`warning_level` = 'critical'", ThenAction(then_expr="'Level_1'")
+            ),
+            WhenThenConditional(
+                "`warning_level` = 'high'", ThenAction(then_expr="'Level_2'")
+            ),
+            WhenThenConditional(
+                "`warning_level` = 'medium'", ThenAction(then_expr="'Level_3'")
+            ),
+            WhenThenConditional(
+                "`warning_level` = 'low'", ThenAction(then_expr="'Level_4'")
+            ),
         ],
         default_case=DefaultCase(then=ThenAction(then_expr="'No_Level'")),
         __seed=99,
@@ -101,7 +130,10 @@ def test_four_branches_order_and_exclusivity(spark):
     )
 
     output = rule.apply(parent_col_df, runtime=None, target_col="penalty_band")
-    vals = [r["penalty_band"] for r in output.orderBy("warning_level").select("penalty_band").collect()]
+    vals = [
+        r["penalty_band"]
+        for r in output.orderBy("warning_level").select("penalty_band").collect()
+    ]
     assert vals == ["Level_1", "Level_2", "Level_4", "Level_3", "No_Level"]
 
 
@@ -119,10 +151,18 @@ def test_validation_then_action_xor_both_set_raises():
 
 def test_default_case_applies_when_no_match(spark):
     rows = [(False,), (False,)]
-    parent_col_df = create_test_parent_col(spark, rows, T.StructType([T.StructField("is_current_employee", T.BooleanType())]))
+    parent_col_df = create_test_parent_col(
+        spark,
+        rows,
+        T.StructType([T.StructField("is_current_employee", T.BooleanType())]),
+    )
 
     rule = CaseWhenRule(
-        branches=[WhenThenConditional("`is_current_employee` = TRUE", ThenAction(then_expr="'some_string'"))],
+        branches=[
+            WhenThenConditional(
+                "`is_current_employee` = TRUE", ThenAction(then_expr="'some_string'")
+            )
+        ],
         default_case=DefaultCase(then=ThenAction(then_expr="NULL")),
         __seed=1,
         __row_idx=F.col("__row_idx"),
@@ -131,4 +171,7 @@ def test_default_case_applies_when_no_match(spark):
     )
 
     output = rule.apply(parent_col_df, runtime=None, target_col="child_col")
-    assert [r["child_col"] for r in output.select("child_col").collect()] == [None, None]
+    assert [r["child_col"] for r in output.select("child_col").collect()] == [
+        None,
+        None,
+    ]
