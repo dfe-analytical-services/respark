@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Type, Optional, TYPE_CHECKING
+from typing import Any, Dict, Type, Optional, List, TYPE_CHECKING
 
 from pyspark.sql import DataFrame, Column
 from respark.random import RNG

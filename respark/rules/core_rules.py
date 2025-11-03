@@ -1,8 +1,8 @@
 from typing import Optional, TYPE_CHECKING
 
-from pyspark.sql import DataFrame, Column
-from pyspark.sql import types as T
-from respark.profile import FkConstraint
+from pyspark.sql import DataFrame, Column, types as T
+
+from respark.relationships import FkConstraint
 from respark.rules import GenerationRule, register_generation_rule
 from respark.sampling import UniformParentSampler
 
@@ -84,9 +84,13 @@ class ForeignKeyFromParent(GenerationRule):
     def _find_fk_constraint(
         self, runtime: "ResparkRuntime", fk_table: str, fk_column: str
     ) -> "FkConstraint":
+
+        if runtime.generation_plan is None:
+            raise ValueError(f"No generation plan found for {fk_table}.{fk_column}")
+
         matches = [
             c
-            for c in runtime.fk_constraints.values()
+            for c in runtime.generation_plan.fk_constraints.values()
             if c.fk_table == fk_table and c.fk_column == fk_column
         ]
         if not matches:

@@ -13,7 +13,7 @@ def test_synthetic_schema_table_names(spark, employees_df, departments_df, sales
     output_synth_dfs = mock_runtime.generate()
 
     expected_tables_gen_plans = [
-        table_gen_plan for table_gen_plan in generation_plan.tables
+        table_gen_plan for table_gen_plan in generation_plan.table_plans
     ]
 
     expected_names = [

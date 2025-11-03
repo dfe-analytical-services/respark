@@ -1,4 +1,4 @@
-from .plan_engine import (
+from .plan_types import (
     SchemaGenerationPlan,
     TableGenerationPlan,
     ColumnGenerationPlan,

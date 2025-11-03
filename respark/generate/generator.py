@@ -1,9 +1,8 @@
 from typing import Dict, Any, Optional, List, TYPE_CHECKING
 import hashlib
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from respark.plan import SchemaGenerationPlan, TableGenerationPlan
+from respark.plan import SchemaGenerationPlan, TableGenerationPlan, ColumnGenerationPlan
 from respark.rules import get_generation_rule
-from respark.profile import FkConstraint, DAG
 from pyspark.sql import SparkSession, DataFrame, functions as F, types as T
 
 
@@ -50,32 +49,31 @@ class SynthSchemaGenerator:
     def generate_synthetic_schema(
         self,
         schema_gen_plan: SchemaGenerationPlan,
-        fk_constraints: Dict[str, FkConstraint],
     ) -> Dict[str, DataFrame]:
 
         table_plan_map: Dict[str, TableGenerationPlan] = {
-            tgp.name: tgp for tgp in schema_gen_plan.tables
+            table_plan.name: table_plan for table_plan in schema_gen_plan.table_plans
         }
-        table_names = list(table_plan_map.keys())
 
         synth_schema: Dict[str, DataFrame] = {}
+        if schema_gen_plan.table_generation_layers is None:
+            schema_gen_plan.build_inter_table_dependencies()
+        layers = schema_gen_plan.table_generation_layers
 
-        dag = DAG.from_fk_constraints(table_names, fk_constraints)
-        layers = dag.compute_layers()
+        if layers is not None:
+            for layer in layers:
+                with ThreadPoolExecutor() as ex:
+                    futures = {
+                        ex.submit(self._generate_table, table_plan_map[name]): name
+                        for name in layer
+                    }
 
-        for layer in layers:
-            with ThreadPoolExecutor() as ex:
-                futures = {
-                    ex.submit(self._generate_table, table_plan_map[name]): name
-                    for name in layer
-                }
-
-                for fut in as_completed(futures):
-                    name = futures[fut]
-                    df = fut.result()
-                    synth_schema[name] = df
-                    if self.runtime is not None:
-                        self.runtime.generated_synthetics[name] = df
+                    for fut in as_completed(futures):
+                        name = futures[fut]
+                        df = fut.result()
+                        synth_schema[name] = df
+                        if self.runtime is not None:
+                            self.runtime.generated_synthetics[name] = df
 
         return synth_schema
 
@@ -112,36 +110,68 @@ class SynthTableGenerator:
             "id", "__row_idx"
         )
 
-        for column_plan in self.table_gen_plan.columns:
-            col_seed = _create_stable_seed(
-                self.seed, self.table_name, column_plan.name, column_plan.rule
-            )
-            exec_params = {
-                **column_plan.params,
-                "__seed": col_seed,
-                "__table": self.table_name,
-                "__column": column_plan.name,
-                "__dtype": column_plan.data_type,
-                "__row_idx": F.col("__row_idx"),
-            }
+        col_plan_map: Dict[str, ColumnGenerationPlan] = {
+            col_plan.name: col_plan for col_plan in self.table_gen_plan.column_plans
+        }
 
-            rule = get_generation_rule(column_plan.rule, **exec_params)
+        if self.table_gen_plan.column_generation_layers is None:
+            self.table_gen_plan.build_inter_col_dependencies()
 
-            try:
-                target_dtype = TYPE_DISPATCH[column_plan.data_type]
-            except KeyError:
-                raise ValueError(f"Unsupported data type: '{column_plan.data_type}'")
+        layers = self.table_gen_plan.column_generation_layers
 
-            if column_plan.name not in synth_df.columns:
-                synth_df = synth_df.withColumn(
-                    column_plan.name, F.lit(None).cast(target_dtype)
-                )
+        if layers is not None:
+            for wave in layers:
+                with ThreadPoolExecutor() as ex:
+                    futures = {
+                        ex.submit(
+                            self._produce_column_df, synth_df, col_plan_map[col_name]
+                        ): col_name
+                        for col_name in wave
+                    }
+                    list_col_dfs: List[DataFrame] = []
+                    for fut in as_completed(futures):
+                        col_df = fut.result()
+                        list_col_dfs.append(col_df)
 
-            synth_df = rule.apply(synth_df, self.runtime, target_col=column_plan.name)
+                for col in list_col_dfs:
+                    synth_df = synth_df.join(col, on="__row_idx", how="inner")
 
-            synth_df = synth_df.withColumn(
-                column_plan.name, F.col(column_plan.name).cast(target_dtype)
-            )
-
-        ordered_cols = [cgp.name for cgp in self.table_gen_plan.columns]
+        ordered_cols = [col_plan.name for col_plan in self.table_gen_plan.column_plans]
         return synth_df.select("__row_idx", *ordered_cols).drop("__row_idx")
+
+    def _produce_column_df(
+        self, base_df: DataFrame, column_plan: ColumnGenerationPlan
+    ) -> DataFrame:
+        """
+        Create a Dataframe (__row_idx, target_col) for a single column
+        of generated synthetic data.
+        """
+        col_name = column_plan.name
+        target_dtype_str = column_plan.data_type
+
+        try:
+            target_dtype = TYPE_DISPATCH[target_dtype_str]
+        except KeyError:
+            raise ValueError(f"Unsupported data type: '{target_dtype_str}'")
+
+        col_seed = _create_stable_seed(
+            self.seed, self.table_name, col_name, column_plan.rule
+        )
+
+        exec_params = {
+            **column_plan.params,
+            "__seed": col_seed,
+            "__table": self.table_name,
+            "__column": col_name,
+            "__dtype": target_dtype_str,
+            "__row_idx": F.col("__row_idx"),
+        }
+
+        rule = get_generation_rule(column_plan.rule, **exec_params)
+
+        synth_col_df = rule.apply(base_df, self.runtime, target_col=col_name)
+        synth_col_df = synth_col_df.withColumn(
+            col_name, F.col(col_name).cast(target_dtype)
+        )
+
+        return synth_col_df.select("__row_idx", col_name)

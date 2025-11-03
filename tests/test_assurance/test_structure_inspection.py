@@ -1,3 +1,4 @@
+from pprint import pprint
 from respark import ResparkRuntime
 from respark.layer_assurance.inspect_structure import (
     SchemaStructureCheck,
