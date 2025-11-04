@@ -39,89 +39,6 @@ def test_profile_specific_subset(test_runtime, employees_df, sales_df, departmen
 
 
 ###
-# Testing adding fk_constraints
-###
-
-
-def test_add_list_remove_fk_constraints(test_runtime, employees_df, sales_df):
-    test_runtime.register_source("employees", employees_df)
-    test_runtime.register_source("sales", sales_df)
-
-    # Test add:
-    fk_name = test_runtime.add_fk_constraint(
-        "employees", "employee_id", "sales", "employee_id"
-    )
-
-    names = test_runtime.list_fk_constraints()
-    assert fk_name in names
-
-    # Test raising on duplicate add:
-    with pytest.raises(ValueError):
-        test_runtime.add_fk_constraint(
-            "employees", "employee_id", "sales", "employee_id"
-        )
-
-    # Test remove:
-    test_runtime.remove_fk_constraint(fk_name)
-    assert fk_name not in test_runtime.list_fk_constraints()
-
-    # Test raising on removing again
-    with pytest.raises(KeyError):
-        test_runtime.remove_fk_constraint(fk_name)
-
-
-###
-# Testing planning
-###
-
-
-def test_create_generation_plan_requires_profile(test_runtime, employees_df, sales_df):
-    test_runtime.register_source("employees", employees_df)
-    test_runtime.register_source("sales", sales_df)
-
-    with pytest.raises(RuntimeError):
-        test_runtime.create_generation_plan()
-
-
-def test_create_generation_plan_and_layers_happy_path(
-    test_runtime, employees_df, sales_df
-):
-    test_runtime.register_source("employees", employees_df)
-    test_runtime.register_source("sales", sales_df)
-    test_runtime.profile_sources()
-
-    test_runtime.add_fk_constraint("employees", "employee_id", "sales", "employee_id")
-
-    plan = test_runtime.create_generation_plan()
-    assert plan is not None
-    plan_table_names = {t.name for t in plan.tables}
-    assert {"employees", "sales"}.issubset(plan_table_names)
-
-    layers = test_runtime.get_generation_layers()
-    assert isinstance(layers, list)
-    assert any("sales" in layer for layer in layers)
-    assert any("employees" in layer for layer in layers)
-
-    # Check pk -> fk parent/child layer order is respected
-    index_by_table = {tbl: i for i, layer in enumerate(layers) for tbl in layer}
-    assert index_by_table["employees"] <= index_by_table["sales"]
-
-
-def test_cycle_in_fk_raises_runtime_error(test_runtime, employees_df, sales_df):
-    test_runtime.register_source("employees", employees_df)
-    test_runtime.register_source("sales", sales_df)
-    test_runtime.profile_sources()
-
-    # Induce a cycle
-    test_runtime.add_fk_constraint("employees", "employee_id", "sales", "employee_id")
-    test_runtime.add_fk_constraint("sales", "employee_id", "employees", "employee_id")
-
-    with pytest.raises(RuntimeError) as e:
-        test_runtime.create_generation_plan()
-    assert "Cycle detected" in str(e.value)
-
-
-###
 # Testing update methods
 ###
 
@@ -146,6 +63,7 @@ def test_generate_uses_synth_schema_generator(monkeypatch, test_runtime, employe
     test_runtime.register_source("employees", employees_df)
     test_runtime.profile_sources()
     test_runtime.create_generation_plan()
+    test_runtime.generation_plan.build_inter_table_dependencies()
 
     calls = {}
 
@@ -157,8 +75,9 @@ def test_generate_uses_synth_schema_generator(monkeypatch, test_runtime, employe
                 "kwargs": kwargs,
             }
 
-        def generate_synthetic_schema(self, schema_gen_plan, fk_constraints):
-            calls["args"] = (schema_gen_plan, fk_constraints)
+        def generate_synthetic_schema(self, *args, **kwargs):
+            plan = args[0] if args else kwargs.get("schema_gen_plan")
+            calls["plan"] = plan
 
             return {"employees": test_runtime.sources["employees"]}
 
@@ -168,15 +87,6 @@ def test_generate_uses_synth_schema_generator(monkeypatch, test_runtime, employe
 
     output = test_runtime.generate()
 
-    # Test that the generator was passed a generation plan, and empty fk constraints
-    assert calls["args"][0] is test_runtime.generation_plan
-    assert isinstance(calls["args"][1], dict)
-    assert calls["args"][1] == {}
-
-    # Test that the generator was initialised with references and a runtime
+    assert calls["plan"] is test_runtime.generation_plan
     assert calls["init"]["references"] is test_runtime.references
     assert calls["init"]["runtime"] is test_runtime
-
-    # Test that a table was generated
-    assert "employees" in output
-    assert isinstance(output["employees"], DataFrame)

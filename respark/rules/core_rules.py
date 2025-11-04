@@ -1,13 +1,23 @@
 from typing import Optional, TYPE_CHECKING
 
-from pyspark.sql import DataFrame, Column
-from pyspark.sql import types as T
-from respark.profile import FkConstraint
+from pyspark.sql import DataFrame, Column, types as T, functions as F
+
+from respark.relationships import FkConstraint
 from respark.rules import GenerationRule, register_generation_rule
 from respark.sampling import UniformParentSampler
 
 if TYPE_CHECKING:
     from respark.runtime import ResparkRuntime
+
+
+@register_generation_rule("const_literal")
+class ConstLiteralRule(GenerationRule):
+    """
+    A simple rule to allow populating a column with one expected field
+    """
+
+    def generate_column(self):
+        return F.lit(self.params["value"])
 
 
 @register_generation_rule("sample_from_reference")
@@ -84,9 +94,13 @@ class ForeignKeyFromParent(GenerationRule):
     def _find_fk_constraint(
         self, runtime: "ResparkRuntime", fk_table: str, fk_column: str
     ) -> "FkConstraint":
+
+        if runtime.generation_plan is None:
+            raise ValueError(f"No generation plan found for {fk_table}.{fk_column}")
+
         matches = [
             c
-            for c in runtime.fk_constraints.values()
+            for c in runtime.generation_plan.fk_constraints.values()
             if c.fk_table == fk_table and c.fk_column == fk_column
         ]
         if not matches:

@@ -1,11 +1,12 @@
 from dataclasses import dataclass
 from collections import deque
-from typing import Iterable, Tuple, List, Dict, Set, Self
-from .types import FkConstraint
+from typing import Iterable, Tuple, Mapping, List, Dict, Set, Self
 
-Table = str
-Edge = Tuple[Table, Table]  # parent -> child (pk_table -> fk_table)
-Layers = List[List[Table]]
+# Defining datatypes for DAG module
+
+Node = str
+EdgePair = Tuple[Node, Node]
+Layers = List[List[Node]]
 
 
 class CycleError(ValueError):
@@ -27,39 +28,32 @@ class DAG:
 
     """
 
-    nodes: Tuple[Table, ...]
-    edges: Tuple[Edge, ...]
+    nodes: Tuple[Node, ...]
+    edges: Tuple[EdgePair, ...]
 
     @classmethod
-    def from_fk_constraints(
-        cls, table_names: Iterable[Table], constraints: Dict[str, FkConstraint]
+    def build(
+        cls,
+        input_nodes: Iterable[Node],
+        input_edges: Iterable[Mapping[str, str]],
     ) -> Self:
         """
-        Build a DAG restricted to the given table_names. Any constraint that
-        references a table outside table_names is ignored.
+        Build a DAG from a list of nodes and dict-style edges:
+        each edge mapping must have keys "start_node" and "end_node".
         """
-        nodes: Set[Table] = set(table_names)
-        edges: Set[Edge] = set()
-        for c in constraints.values():
-            if c.pk_table in nodes and c.fk_table in nodes:
-                edges.add((c.pk_table, c.fk_table))
+        nodes: Set[Node] = set(input_nodes)
+        pairs: Set[EdgePair] = set()
+
+        for e in input_edges:
+            u = e["start_node"]
+            v = e["end_node"]
+            if u in nodes and v in nodes:
+                pairs.add((u, v))
 
         return cls(
             nodes=tuple(sorted(nodes)),
-            edges=tuple(sorted(edges)),
+            edges=tuple(sorted(pairs)),
         )
-
-    def _adj_and_indegree(self) -> Tuple[Dict[Table, Set[Table]], Dict[Table, int]]:
-        adj: Dict[Table, Set[Table]] = {n: set() for n in self.nodes}
-        indeg: Dict[Table, int] = {n: 0 for n in self.nodes}
-
-        # Need to go back and review this set(self.edges) later - will a child table ever have more than
-        # 1 dependency on a parent table?
-        for u, v in set(self.edges):
-            adj[u].add(v)
-            indeg[v] += 1
-
-        return adj, indeg
 
     def compute_layers(self) -> Layers:
         """
@@ -70,7 +64,13 @@ class DAG:
 
         Raises CycleError if the graph is not a DAG.
         """
-        adj, indeg = self._adj_and_indegree()
+
+        adj: Dict[Node, Set[Node]] = {n: set() for n in self.nodes}
+        indeg: Dict[Node, int] = {n: 0 for n in self.nodes}
+
+        for u, v in set(self.edges):
+            adj[u].add(v)
+            indeg[v] += 1
 
         # Start with all zero-indegree nodes (including isolated).
         # E.g start with tables that have no parents,
