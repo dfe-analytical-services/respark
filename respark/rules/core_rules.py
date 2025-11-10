@@ -53,15 +53,17 @@ class SampleFromReference(GenerationRule):
         if ref_name not in runtime.references:
             raise ValueError(f"Reference '{ref_name}' not found in runtime.references")
 
+        reference_df= runtime.references[ref_name]
+
         sampler = UniformParentSampler()
         artifact = sampler.ensure_artifact_for_parent(
             cache_key=(ref_name, ref_col),
-            parent_df=runtime.references[ref_name],
+            parent_df=reference_df,
             parent_col=ref_col,
         )
 
         rng = self.rng()
-        out_type: T.DataType = df.schema[target_col].dataType
+        out_type: T.DataType = reference_df.schema[target_col].dataType
 
         salt_base = f"{self.params.get('__table', 'table')}.{target_col}"
         return sampler.assign_uniform_from_artifact(
@@ -92,16 +94,23 @@ class ForeignKeyFromParent(GenerationRule):
         )
 
     def _find_fk_constraint(
-        self, runtime: "ResparkRuntime", fk_table: str, fk_column: str
+        self, runtime: "ResparkRuntime", 
+        fk_table: str, 
+        fk_column: str
     ) -> "FkConstraint":
 
         if runtime.generation_plan is None:
             raise ValueError(f"No generation plan found for {fk_table}.{fk_column}")
+        
+        fk_constraints_map = runtime.generation_plan.fk_constraints
+        if not fk_constraints_map:
+            raise ValueError("No FK constraints registered in generation plan.")
+
 
         matches = [
-            c
-            for c in runtime.generation_plan.fk_constraints.values()
-            if c.fk_table == fk_table and c.fk_column == fk_column
+            fk_constraint
+            for fk_constraint in fk_constraints_map.values()
+            if fk_constraint.fk_table == fk_table and fk_constraint.fk_column == fk_column
         ]
         if not matches:
             raise ValueError(f"No FK constraint found for {fk_table}.{fk_column}")
@@ -150,7 +159,7 @@ class ForeignKeyFromParent(GenerationRule):
 
         rng = self.rng()
 
-        out_type: T.DataType = df.schema[target_col].dataType
+        out_type: T.DataType = parent_df.schema[target_col].dataType
 
         salt = constraint.name or f"{constraint.fk_table}.{constraint.fk_column}"
         return sampler.assign_uniform_from_artifact(
