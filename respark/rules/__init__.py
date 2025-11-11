@@ -1,25 +1,24 @@
-from importlib import import_module
-from pkgutil import iter_modules
-from pathlib import Path
-
-from .registry import (
+import importlib
+from importlib import import_module, resources
+import pkgutil
+from .rules_registry import (
     GenerationRule,
     register_generation_rule,
     get_generation_rule,
     GENERATION_RULES_REGISTRY,
 )
 
-from .conditional_rules import ThenAction, WhenThenConditional, DefaultCase
+from .relational_rules.case_when import ThenAction, WhenThenConditional, DefaultCase
 
+def auto_import_rules():
+    pkg = importlib.import_module(__name__)
+    skip_basenames = {"__init__"}
 
-def _auto_import_rules():
-    pkg_dir = Path(__file__).parent
-    pkg_name = __name__
-    skip = {"__init__", "_core", "random_helpers"}
-    for m in iter_modules([str(pkg_dir)]):
-        if m.ispkg or m.name in skip:
+    for modinfo in pkgutil.walk_packages(pkg.__path__, prefix=f"{pkg.__name__}."):
+        _, modname, _ = modinfo
+        base = modname.rsplit(".", 1)[-1]
+        if base in skip_basenames:
             continue
-        import_module(f"{pkg_name}.{m.name}")
+        import_module(modname)
 
-
-_auto_import_rules()
+auto_import_rules()

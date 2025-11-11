@@ -1,6 +1,6 @@
 import pytest
 from pyspark.sql import functions as F, types as T
-from respark.rules.conditional_rules import (
+from respark.rules.relational_rules.case_when import (
     CaseWhenRule,
     WhenThenConditional,
     ThenAction,

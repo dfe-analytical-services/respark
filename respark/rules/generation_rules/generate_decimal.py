@@ -1,6 +1,6 @@
 from decimal import Decimal
 from pyspark.sql import Column, functions as F, types as T
-from .core_rules import register_generation_rule, GenerationRule
+from ..rules_registry import register_generation_rule, GenerationRule
 from respark.random import randint_long
 
 

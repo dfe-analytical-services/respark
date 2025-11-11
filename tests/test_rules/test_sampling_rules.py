@@ -2,7 +2,7 @@ import pytest
 from typing import Any, cast
 from pyspark.sql import functions as F
 from pyspark.sql import types as T
-import respark.rules.core_rules as core_rules
+from respark.rules.relational_rules.sampling_rules import SampleFromReference, ForeignKeyFromParent
 from respark.rules import GENERATION_RULES_REGISTRY
 
 
@@ -27,7 +27,7 @@ def test_rules_are_registered_under_new_names():
 
 
 def test_sample_from_reference_happy_path(employees_df, departments_df, test_seed):
-    rule = core_rules.SampleFromReference(
+    rule = SampleFromReference(
         reference_name="departments",
         column="department_id",
         __seed=test_seed,
@@ -58,7 +58,7 @@ def test_sample_from_reference_happy_path(employees_df, departments_df, test_see
 
 
 def test_sample_from_reference_missing_runtime_raises(employees_df, test_seed):
-    rule = core_rules.SampleFromReference(
+    rule = SampleFromReference(
         reference_name="departments",
         column="department_id",
         __seed=test_seed,
@@ -72,7 +72,7 @@ def test_sample_from_reference_missing_runtime_raises(employees_df, test_seed):
 def test_sample_from_reference_missing_reference_key_raises(
     employees_df, departments_df, test_seed
 ):
-    rule = core_rules.SampleFromReference(
+    rule = SampleFromReference(
         reference_name="missing_ref",
         column="department_id",
         __seed=test_seed,
@@ -88,7 +88,7 @@ def test_sample_from_reference_missing_reference_key_raises(
 def test_sample_from_reference_missing_params_raises_value_error(
     employees_df, test_seed
 ):
-    rule = core_rules.SampleFromReference(
+    rule = SampleFromReference(
         __seed=test_seed,
         __row_idx=F.lit(0),
         __table="employees",
