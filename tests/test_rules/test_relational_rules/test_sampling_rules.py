@@ -2,7 +2,10 @@ import pytest
 from typing import Any, cast
 from pyspark.sql import functions as F
 from pyspark.sql import types as T
-from respark.rules.relational_rules.sampling_rules import SampleFromReference, ForeignKeyFromParent
+from respark.rules.relational_rules.sampling_rules import (
+    SampleFromReference,
+    ForeignKeyFromParent,
+)
 from respark.rules import GENERATION_RULES_REGISTRY
 
 
@@ -38,7 +41,7 @@ def test_sample_from_reference_happy_path(employees_df, departments_df, test_see
     runtime = MockRuntime(references={"departments": departments_df})
 
     out = rule.apply(
-        df=employees_df,
+        base_df=employees_df,
         runtime=cast(Any, runtime),
         target_col="department_id",
     )
@@ -97,7 +100,7 @@ def test_sample_from_reference_missing_params_raises_value_error(
 
     with pytest.raises(KeyError):
         rule.apply(
-            df=employees_df,
+            base_df=employees_df,
             runtime=cast(Any, runtime),
             target_col="department_id",
         )

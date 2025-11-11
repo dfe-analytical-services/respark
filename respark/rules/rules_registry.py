@@ -32,13 +32,13 @@ class GenerationRule(ABC):
         raise NotImplementedError
 
     def apply(
-        self, df: DataFrame, runtime: Optional["ResparkRuntime"], target_col: str
+        self, base_df: DataFrame, runtime: Optional["ResparkRuntime"], target_col: str
     ) -> DataFrame:
         """
         Default behavior for non-relational rules: attach a Column built by generate_column().
         Relational rules should override this to perform distributed joins.
         """
-        return df.withColumn(target_col, self.generate_column())
+        return base_df.withColumn(target_col, self.generate_column())
 
 
 GENERATION_RULES_REGISTRY: Dict[str, Type["GenerationRule"]] = {}

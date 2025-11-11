@@ -10,6 +10,7 @@ from .rules_registry import (
 
 from .relational_rules.case_when import ThenAction, WhenThenConditional, DefaultCase
 
+
 def auto_import_rules():
     pkg = importlib.import_module(__name__)
     skip_basenames = {"__init__"}
@@ -20,5 +21,6 @@ def auto_import_rules():
         if base in skip_basenames:
             continue
         import_module(modname)
+
 
 auto_import_rules()

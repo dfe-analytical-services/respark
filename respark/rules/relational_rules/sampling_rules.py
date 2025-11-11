@@ -43,7 +43,7 @@ class SampleFromReference(GenerationRule):
         if ref_name not in runtime.references:
             raise ValueError(f"Reference '{ref_name}' not found in runtime.references")
 
-        reference_df= runtime.references[ref_name]
+        reference_df = runtime.references[ref_name]
 
         sampler = UniformParentSampler()
         artifact = sampler.ensure_artifact_for_parent(
@@ -84,23 +84,21 @@ class ForeignKeyFromParent(GenerationRule):
         )
 
     def _find_fk_constraint(
-        self, runtime: "ResparkRuntime", 
-        fk_table: str, 
-        fk_column: str
+        self, runtime: "ResparkRuntime", fk_table: str, fk_column: str
     ) -> "FkConstraint":
 
         if runtime.generation_plan is None:
             raise ValueError(f"No generation plan found for {fk_table}.{fk_column}")
-        
+
         fk_constraints_map = runtime.generation_plan.fk_constraints
         if not fk_constraints_map:
             raise ValueError("No FK constraints registered in generation plan.")
 
-
         matches = [
             fk_constraint
             for fk_constraint in fk_constraints_map.values()
-            if fk_constraint.fk_table == fk_table and fk_constraint.fk_column == fk_column
+            if fk_constraint.fk_table == fk_table
+            and fk_constraint.fk_column == fk_column
         ]
         if not matches:
             raise ValueError(f"No FK constraint found for {fk_table}.{fk_column}")
