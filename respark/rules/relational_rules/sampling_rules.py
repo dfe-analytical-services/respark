@@ -1,9 +1,9 @@
 from typing import Optional, TYPE_CHECKING
-from pyspark.sql import DataFrame, Column, types as T
+from pyspark.sql import DataFrame, types as T
 
 from respark.relationships import FkConstraint
 from respark.rules.registry import register_generation_rule
-from ..rule_types import RelationalGenerationRule 
+from ..rule_types import RelationalGenerationRule
 from respark.sampling import UniformParentSampler
 
 if TYPE_CHECKING:
@@ -60,8 +60,9 @@ class SampleFromReference(RelationalGenerationRule):
             salt_position=f"{salt_base}:pos",
         )
 
-    def register_dependency(self):
+    def collect_parent_columns(self):
         pass
+
 
 @register_generation_rule("fk_from_parent")
 class ForeignKeyFromParent(RelationalGenerationRule):
@@ -150,5 +151,5 @@ class ForeignKeyFromParent(RelationalGenerationRule):
             salt_position=f"{salt}:pos",
         )
 
-    def register_dependency(self):
+    def collect_parent_columns(self):
         pass

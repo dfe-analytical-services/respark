@@ -3,6 +3,7 @@ from typing import Any, Optional, TYPE_CHECKING
 
 from pyspark.sql import DataFrame, Column
 from respark.random import RNG
+
 if TYPE_CHECKING:
     from respark.runtime import ResparkRuntime
 
@@ -31,29 +32,32 @@ class GenerationRule(ABC):
         this abstract method.
         """
         raise NotImplementedError
-    
+
     def apply(
-        self, 
-        base_df: DataFrame, 
-        runtime: "ResparkRuntime",
-        target_col: str
+        self, base_df: DataFrame, runtime: "ResparkRuntime", target_col: str
     ) -> DataFrame:
         """
         Default behavior for non-relational rules: attach a Column built by generate_column().
         """
         return base_df.withColumn(target_col, self.generate_column())
 
-
-class RelationalGenerationRule(GenerationRule, ABC):
-    @abstractmethod
-    def register_dependency(
-        self, runtime: "ResparkRuntime"
-    ) -> None:
-        ...
+    def collect_parent_columns(self) -> set:
         """
-        Placeholder for complex rules that have complex dependencies (e.g fk_from_parent). 
-        
+        Placeholder for complex rules that have complex dependencies (e.g fk_from_parent).
+
         Allows for the rules to register dependencies pre-generation to the runtime,
         to enable layering and ordering of table and column generation.
         """
+        return set()
 
+
+class RelationalGenerationRule(GenerationRule, ABC):
+    @abstractmethod
+    def collect_parent_columns(self) -> set:
+        """
+        Placeholder for complex rules that have complex dependencies (e.g fk_from_parent).
+
+        Allows for the rules to register dependencies pre-generation to the runtime,
+        to enable layering and ordering of table and column generation.
+        """
+        ...

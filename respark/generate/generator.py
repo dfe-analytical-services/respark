@@ -37,7 +37,7 @@ class SynthSchemaGenerator:
     def __init__(
         self,
         spark: SparkSession,
-        runtime: Optional["ResparkRuntime"],
+        runtime: "ResparkRuntime",
         seed: int = 18151210,
         references: Optional[Dict[str, DataFrame]] = None,
     ):
@@ -92,7 +92,7 @@ class SynthTableGenerator:
     def __init__(
         self,
         spark_session: SparkSession,
-        runtime: Optional["ResparkRuntime"],
+        runtime: "ResparkRuntime",
         table_gen_plan: TableGenerationPlan,
         seed: int = 18151210,
         references: Optional[Dict[str, DataFrame]] = None,
@@ -155,7 +155,7 @@ class SynthTableGenerator:
             raise ValueError(f"Unsupported data type: '{target_dtype_str}'")
 
         col_seed = _create_stable_seed(
-            self.seed, self.table_name, col_name, column_plan.rule
+            self.seed, self.table_name, col_name, column_plan.rule_name
         )
 
         exec_params = {
@@ -167,7 +167,7 @@ class SynthTableGenerator:
             "__row_idx": F.col("__row_idx"),
         }
 
-        rule = get_generation_rule(column_plan.rule, **exec_params)
+        rule = get_generation_rule(column_plan.rule_name, **exec_params)
 
         synth_col_df = rule.apply(base_df, self.runtime, target_col=col_name)
         synth_col_df = synth_col_df.withColumn(

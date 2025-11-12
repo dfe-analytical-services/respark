@@ -95,7 +95,7 @@ class ResparkRuntime:
                     ColumnGenerationPlan(
                         name=column_profile.name,
                         data_type=column_profile.spark_subtype,
-                        rule=column_profile.default_rule(),
+                        rule_name=column_profile.default_rule(),
                         params=column_profile.type_specific_params(),
                     )
                 )
