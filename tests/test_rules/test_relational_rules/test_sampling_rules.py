@@ -2,11 +2,8 @@ import pytest
 from typing import Any, cast
 from pyspark.sql import functions as F
 from pyspark.sql import types as T
-from respark.rules.relational_rules.sampling_rules import (
-    SampleFromReference,
-    ForeignKeyFromParent,
-)
-from respark.rules import GENERATION_RULES_REGISTRY
+from respark.rules.relational_rules.sampling_rules import SampleFromReference
+from respark.rules.registry import GENERATION_RULES_REGISTRY
 
 
 class MockRuntime:

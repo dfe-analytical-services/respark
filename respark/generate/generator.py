@@ -2,7 +2,7 @@ from typing import Dict, Any, Optional, List, TYPE_CHECKING
 import hashlib
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from respark.plan import SchemaGenerationPlan, TableGenerationPlan, ColumnGenerationPlan
-from respark.rules import get_generation_rule
+from respark.rules.registry import get_generation_rule
 from pyspark.sql import SparkSession, DataFrame, functions as F, types as T
 
 

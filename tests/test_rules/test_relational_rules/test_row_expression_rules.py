@@ -1,6 +1,6 @@
 import pytest
 from typing import Any, cast
-from respark.rules import GENERATION_RULES_REGISTRY
+from respark.rules.registry import GENERATION_RULES_REGISTRY
 from respark.rules.relational_rules.row_expression_rules import RowExpressionRule
 from pyspark.sql import functions as F, types as T
 

@@ -1,9 +1,9 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
 from dataclasses import dataclass
 from pyspark.sql import Column
 import pyspark.sql.functions as F
-
-from respark.rules import GenerationRule, register_generation_rule, get_generation_rule
+from ..rule_types import RelationalGenerationRule
+from respark.rules.registry import register_generation_rule, get_generation_rule
 
 
 @dataclass(slots=True)
@@ -73,7 +73,7 @@ class DefaultCase:
 
 
 @register_generation_rule("case_when_else")
-class CaseWhenRule(GenerationRule):
+class CaseWhenRule(RelationalGenerationRule):
     """
     A column generation rule that works like a SQL CASE ... WHEN.
 
@@ -167,3 +167,8 @@ class CaseWhenRule(GenerationRule):
                 output = output.otherwise(F.lit(None))
 
         return output
+    
+    def register_dependency(self):
+        pass
+    
+

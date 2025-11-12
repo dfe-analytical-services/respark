@@ -1,5 +1,6 @@
 from pyspark.sql import functions as F
-from respark.rules import GenerationRule, register_generation_rule
+from ..rule_types import GenerationRule
+from ..registry import register_generation_rule
 
 
 @register_generation_rule("const_literal")
