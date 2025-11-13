@@ -12,12 +12,12 @@ class RowExpressionRule(RelationalGenerationRule):
     """
 
     def generate_column(self) -> Column:
-        sql_expression = self.params["sql_expression"]
+        sql_expression = self.params.get("sql_expression", "")
         return F.expr(sql_expression)
 
-    def collect_parent_columns(self):
+    def collect_parent_columns(self) -> set:
         distinct_parent_cols = set()
-        sql_expression = self.params["sql_expression"]
+        sql_expression = self.params.get("sql_expression", "")
 
         distinct_parent_cols.update(re.findall(r"`([^`]+)`", sql_expression))
 

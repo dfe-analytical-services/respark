@@ -51,10 +51,7 @@ class SynthSchemaGenerator:
         schema_gen_plan: SchemaGenerationPlan,
     ) -> Dict[str, DataFrame]:
 
-        table_plan_map: Dict[str, TableGenerationPlan] = {
-            table_plan.name: table_plan for table_plan in schema_gen_plan.table_plans
-        }
-
+        table_plans = schema_gen_plan.table_plans
         synth_schema: Dict[str, DataFrame] = {}
         if schema_gen_plan.table_generation_layers is None:
             schema_gen_plan.build_inter_table_dependencies()
@@ -64,7 +61,7 @@ class SynthSchemaGenerator:
             for layer in layers:
                 with ThreadPoolExecutor() as ex:
                     futures = {
-                        ex.submit(self._generate_table, table_plan_map[name]): name
+                        ex.submit(self._generate_table, table_plans[name]): name
                         for name in layer
                     }
 
@@ -110,10 +107,7 @@ class SynthTableGenerator:
             "id", "__row_idx"
         )
 
-        col_plan_map: Dict[str, ColumnGenerationPlan] = {
-            col_plan.name: col_plan for col_plan in self.table_gen_plan.column_plans
-        }
-
+        col_plans = self.table_gen_plan.column_plans
         if self.table_gen_plan.column_generation_layers is None:
             self.table_gen_plan.build_inter_col_dependencies()
 
@@ -124,7 +118,7 @@ class SynthTableGenerator:
                 with ThreadPoolExecutor() as ex:
                     futures = {
                         ex.submit(
-                            self._produce_column_df, synth_df, col_plan_map[col_name]
+                            self._produce_column_df, synth_df, col_plans[col_name]
                         ): col_name
                         for col_name in wave
                     }
@@ -136,7 +130,7 @@ class SynthTableGenerator:
                 for col in list_col_dfs:
                     synth_df = synth_df.join(col, on="__row_idx", how="inner")
 
-        ordered_cols = [col_plan.name for col_plan in self.table_gen_plan.column_plans]
+        ordered_cols = list(self.table_gen_plan.column_plans.keys())
         return synth_df.select("__row_idx", *ordered_cols).drop("__row_idx")
 
     def _produce_column_df(
@@ -154,12 +148,10 @@ class SynthTableGenerator:
         except KeyError:
             raise ValueError(f"Unsupported data type: '{target_dtype_str}'")
 
-        col_seed = _create_stable_seed(
-            self.seed, self.table_name, col_name, column_plan.rule_name
-        )
+        col_seed = _create_stable_seed(self.seed, self.table_name, col_name)
 
         exec_params = {
-            **column_plan.params,
+            **column_plan.rule.params,
             "__seed": col_seed,
             "__table": self.table_name,
             "__column": col_name,
@@ -167,9 +159,9 @@ class SynthTableGenerator:
             "__row_idx": F.col("__row_idx"),
         }
 
-        rule = get_generation_rule(column_plan.rule_name, **exec_params)
+        column_plan.rule.params.update(**exec_params)
 
-        synth_col_df = rule.apply(
+        synth_col_df = column_plan.rule.apply(
             runtime=self.runtime, base_df=base_df, target_col=col_name
         )
 
