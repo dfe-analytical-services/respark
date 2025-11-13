@@ -56,8 +56,8 @@ class SampleFromReference(RelationalGenerationRule):
             salt_position=f"{salt_base}:pos",
         )
 
-    def collect_parent_columns(self):
-        pass
+    def collect_parent_columns(self) -> set:
+        return set()
 
 
 @register_generation_rule("fk_from_parent")
@@ -146,5 +146,5 @@ class ForeignKeyFromParent(RelationalGenerationRule):
             salt_position=f"{salt}:pos",
         )
 
-    def collect_parent_columns(self):
-        pass
+    def collect_parent_columns(self) -> set:
+        return set()

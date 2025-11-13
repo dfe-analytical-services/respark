@@ -170,7 +170,7 @@ class CaseWhenRule(RelationalGenerationRule):
 
         return output
 
-    def collect_parent_columns(self) -> Set[str]:
+    def collect_parent_columns(self) -> set:
         branches: List[WhenThenConditional] = self.params.get("branches", [])
 
         distinct_parent_cols = set()
@@ -179,5 +179,7 @@ class CaseWhenRule(RelationalGenerationRule):
             distinct_parent_cols.update(
                 re.findall(r"`([^`]+)`", when_condition.when_clause)
             )
+
+        self.params["parent_cols"] = distinct_parent_cols
 
         return distinct_parent_cols

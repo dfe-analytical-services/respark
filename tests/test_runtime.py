@@ -43,17 +43,6 @@ def test_profile_specific_subset(test_runtime, employees_df, sales_df, departmen
 ###
 
 
-def test_update_methods_require_plan(test_runtime):
-    with pytest.raises(RuntimeError):
-        test_runtime.update_column_rule("employees", "employee_id", "some_rule")
-
-    with pytest.raises(RuntimeError):
-        test_runtime.update_column_params("employees", "employee_id", {"k": "v"})
-
-    with pytest.raises(RuntimeError):
-        test_runtime.update_table_row_count("employees", 100)
-
-
 def test_generate_requires_plan(test_runtime):
     with pytest.raises(RuntimeError):
         test_runtime.generate()

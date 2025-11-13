@@ -2,7 +2,7 @@ import json
 from typing import Optional, Dict, Any, List, Set
 from dataclasses import dataclass, field, asdict
 from ..relationships import FkConstraint, InternalColDepndency, DAG, CycleError
-from respark.rules.rule_types import RelationalGenerationRule
+from respark.rules.rule_types import RelationalGenerationRule, GenerationRule
 from respark.rules.registry import get_generation_rule
 
 
@@ -10,24 +10,28 @@ from respark.rules.registry import get_generation_rule
 class ColumnGenerationPlan:
     name: str
     data_type: str
-    rule_name: str
-    params: Dict[str, Any] = field(default_factory=dict)
+    rule: GenerationRule
     parent_columns: Set[str] = field(default_factory=set)
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
 
-    def update_parent_columns(self):
-        rule = get_generation_rule(rule_name=self.rule_name, params=self.params)
-        if isinstance(rule, RelationalGenerationRule):
-            self.parent_columns = rule.collect_parent_columns()
+    def update_parent_columns(self) -> set:
+        if isinstance(self.rule, RelationalGenerationRule):
+            parent_columns = self.rule.collect_parent_columns()
+            print(f"col {self.name} is dependant on {parent_columns}")
+            self.parent_columns = parent_columns
+            print(f"parent_cols for {self.name} are {self.parent_columns}")
+            return self.parent_columns
+        else:
+            return set()
 
 
 @dataclass
 class TableGenerationPlan:
     name: str
     row_count: int
-    column_plans: List[ColumnGenerationPlan] = field(default_factory=list)
+    column_plans: Dict[str, ColumnGenerationPlan] = field(default_factory=dict)
     column_dependencies: Dict[str, InternalColDepndency] = field(default_factory=dict)
     column_generation_layers: Optional[List[List[str]]] = None
 
@@ -45,9 +49,10 @@ class TableGenerationPlan:
     def update_column_dependencies(self):
 
         updated_col_dependencies = {}
-        for col_plan in self.column_plans:
+        for col_plan in self.column_plans.values():
             col_plan.update_parent_columns()
             parent_cols_set = col_plan.parent_columns
+            print(f"{col_plan.name} has parent cols {parent_cols_set}")
 
             if parent_cols_set:
                 for parent_col in parent_cols_set:
@@ -56,7 +61,7 @@ class TableGenerationPlan:
                         parent_col=parent_col,
                         child_col=self.name,
                     )
-        self.column_dependencies = updated_col_dependencies
+        self.column_dependencies.update(updated_col_dependencies)
         self.column_generation_layers = None
 
     def get_column_dependencies(self) -> Dict[str, InternalColDepndency]:
@@ -70,7 +75,7 @@ class TableGenerationPlan:
         self.update_column_dependencies()
 
         try:
-            col_names = {plan.name for plan in self.column_plans}
+            col_names = list(self.column_plans.keys())
             col_dependencies = (
                 {"start_node": dep.parent_col, "end_node": dep.child_col}
                 for dep in self.column_dependencies.values()
@@ -86,7 +91,7 @@ class TableGenerationPlan:
 
 @dataclass
 class SchemaGenerationPlan:
-    table_plans: List[TableGenerationPlan] = field(default_factory=list)
+    table_plans: Dict[str, TableGenerationPlan] = field(default_factory=dict)
     fk_constraints: Dict[str, FkConstraint] = field(default_factory=dict)
     table_generation_layers: Optional[List[List[str]]] = None
 
@@ -147,24 +152,26 @@ class SchemaGenerationPlan:
     ###
 
     def get_table_plan(self, table_name: str) -> TableGenerationPlan:
-        for table in self.table_plans:
-            if table.name == table_name:
-                return table
-        raise ValueError(f"Table {table_name} not found in the generation plan.")
+        try:
+            table_plan = self.table_plans[table_name]
+            return table_plan
+        except:
+            raise ValueError(f"Table {table_name} not found in the generation plan.")
 
     def update_table_row_count(self, table_name: str, new_row_count: int) -> None:
-        for table in self.table_plans:
-            if table.name == table_name:
-                table.row_count = new_row_count
-                return
-        raise ValueError(f"Table {table_name} not found in the generation plan.")
+        try:
+            table_plan = self.table_plans[table_name]
+            table_plan.row_count = new_row_count
+        except:
+            raise ValueError(f"Table {table_name} not found in the generation plan.")
 
     def build_inter_table_dependencies(self) -> None:
-        for table_plan in self.table_plans:
+        for table_plan in self.table_plans.values():
             table_plan.build_inter_col_dependencies()
 
         try:
-            table_names = {table_plan.name for table_plan in self.table_plans}
+            table_names = list(self.table_plans.keys())
+
             table_dependencies = (
                 {"start_node": dep.pk_table, "end_node": dep.fk_table}
                 for dep in self.fk_constraints.values()
@@ -183,26 +190,26 @@ class SchemaGenerationPlan:
     def get_column_plan(
         self, table_name: str, column_name: str
     ) -> ColumnGenerationPlan:
-        for table in self.table_plans:
-            if table.name == table_name:
-                for column_plan in table.column_plans:
-                    if column_plan.name == column_name:
-                        return column_plan
-        raise ValueError(f"Column {column_name} not found in table {table_name}.")
+        try:
+            column_plan = self.table_plans[table_name].column_plans[column_name]
+            return column_plan
+        except:
+            raise ValueError(f"Column {column_name} not found in table {table_name}.")
 
     def update_column_rule(
         self,
         table_name: str,
         column_name: str,
-        new_rule: str,
+        new_rule_name: str,
+        new_rule_params: Dict[str, Any],
     ) -> None:
-        for table in self.table_plans:
-            if table.name == table_name:
-                for column_plan in table.column_plans:
-                    if column_plan.name == column_name:
-                        column_plan.rule_name = new_rule
-                        return
-        raise ValueError(f"Column {column_name} not found in table {table_name}.")
+
+        try:
+            self.table_plans[table_name].column_plans[column_name].rule = (
+                get_generation_rule(new_rule_name, **new_rule_params)
+            )
+        except:
+            raise ValueError(f"Column {column_name} not found in table {table_name}.")
 
     def update_column_params(
         self,
@@ -210,10 +217,9 @@ class SchemaGenerationPlan:
         column_name: str,
         new_params: Dict[str, Any],
     ) -> None:
-        for table in self.table_plans:
-            if table.name == table_name:
-                for column in table.column_plans:
-                    if column.name == column_name:
-                        column.params.update(new_params)
-                        return
-        raise ValueError(f"Column {column_name} not found in table {table_name}.")
+        try:
+            self.table_plans[table_name].column_plans[column_name].rule.params.update(
+                **new_params
+            )
+        except:
+            raise ValueError(f"Column {column_name} not found in table {table_name}.")

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Optional, TYPE_CHECKING
+from typing import Any, Set, TYPE_CHECKING
 
 from pyspark.sql import DataFrame, Column
 from respark.random import RNG
@@ -48,16 +48,11 @@ class GenerationRule(ABC):
         Allows for the rules to register dependencies pre-generation to the runtime,
         to enable layering and ordering of table and column generation.
         """
-        return set()
+
+        raise NotImplementedError
 
 
 class RelationalGenerationRule(GenerationRule, ABC):
-    @abstractmethod
-    def collect_parent_columns(self) -> set:
-        """
-        Placeholder for complex rules that have complex dependencies (e.g fk_from_parent).
 
-        Allows for the rules to register dependencies pre-generation to the runtime,
-        to enable layering and ordering of table and column generation.
-        """
-        ...
+    @abstractmethod
+    def collect_parent_columns(self) -> set: ...
