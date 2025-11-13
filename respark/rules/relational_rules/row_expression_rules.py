@@ -16,10 +16,8 @@ class RowExpressionRule(RelationalGenerationRule):
         return F.expr(sql_expression)
 
     def collect_parent_columns(self) -> set:
-        print("I am a row expression rule")
         distinct_parent_cols = set()
         sql_expression = self.params.get("sql_expression", "")
-        print(f"gettting sql expr: {sql_expression}")
 
         distinct_parent_cols.update(re.findall(r"`([^`]+)`", sql_expression))
 

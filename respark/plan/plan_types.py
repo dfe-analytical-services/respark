@@ -19,9 +19,7 @@ class ColumnGenerationPlan:
     def update_parent_columns(self) -> set:
         if isinstance(self.rule, RelationalGenerationRule):
             parent_columns = self.rule.collect_parent_columns()
-            print(f"col {self.name} is dependant on {parent_columns}")
             self.parent_columns = parent_columns
-            print(f"parent_cols for {self.name} are {self.parent_columns}")
             return self.parent_columns
         else:
             return set()
@@ -48,18 +46,17 @@ class TableGenerationPlan:
 
     def update_column_dependencies(self):
 
-        updated_col_dependencies = {}
+        updated_col_dependencies : Dict[str, InternalColDepndency] = {}
         for col_plan in self.column_plans.values():
             col_plan.update_parent_columns()
             parent_cols_set = col_plan.parent_columns
-            print(f"{col_plan.name} has parent cols {parent_cols_set}")
 
             if parent_cols_set:
                 for parent_col in parent_cols_set:
-                    name = InternalColDepndency.derive_name(parent_col, self.name)
+                    name = InternalColDepndency.derive_name(parent_col, col_plan.name)
                     updated_col_dependencies[name] = InternalColDepndency(
                         parent_col=parent_col,
-                        child_col=self.name,
+                        child_col=col_plan.name,
                     )
         self.column_dependencies.update(updated_col_dependencies)
         self.column_generation_layers = None
