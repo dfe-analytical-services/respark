@@ -71,13 +71,13 @@ def test_get_column_plan_and_updates():
                     ColumnGenerationPlan(
                         name="first_name",
                         data_type="string",
-                        rule="random_string",
+                        rule_name="random_string",
                         params={"min_length": 2, "max_length": 10},
                     ),
                     ColumnGenerationPlan(
                         name="department_id",
                         data_type="int",
-                        rule="sample_from_reference",
+                        rule_name="sample_from_reference",
                         params={"min_value": 1, "max_value": 10},
                     ),
                 ],
@@ -86,12 +86,13 @@ def test_get_column_plan_and_updates():
     )
 
     col = plan.get_column_plan("employees", "first_name")
-    assert col.rule == "random_string"
+    assert col.rule_name == "random_string"
     assert col.params == {"min_length": 2, "max_length": 10}
 
     plan.update_column_rule("employees", "first_name", "some_other_string_rule")
     assert (
-        plan.get_column_plan("employees", "first_name").rule == "some_other_string_rule"
+        plan.get_column_plan("employees", "first_name").rule_name
+        == "some_other_string_rule"
     )
 
     plan.update_column_params("employees", "first_name", {"max_length": 8})

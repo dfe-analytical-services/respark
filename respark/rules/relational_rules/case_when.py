@@ -1,9 +1,12 @@
-from typing import Any, Dict, List, Optional
+import re
+from typing import Any, Set, Dict, List, Optional, TYPE_CHECKING
 from dataclasses import dataclass
-from pyspark.sql import Column
-import pyspark.sql.functions as F
+from pyspark.sql import Column, functions as F
+from respark.rules.rule_types import RelationalGenerationRule
+from respark.rules.registry import register_generation_rule, get_generation_rule
 
-from respark.rules import GenerationRule, register_generation_rule, get_generation_rule
+if TYPE_CHECKING:
+    from respark.runtime import ResparkRuntime
 
 
 @dataclass(slots=True)
@@ -73,7 +76,7 @@ class DefaultCase:
 
 
 @register_generation_rule("case_when_else")
-class CaseWhenRule(GenerationRule):
+class CaseWhenRule(RelationalGenerationRule):
     """
     A column generation rule that works like a SQL CASE ... WHEN.
 
@@ -107,7 +110,6 @@ class CaseWhenRule(GenerationRule):
     def generate_column(self) -> Column:
         branches: List[WhenThenConditional] = self.params.get("branches", [])
         default_case: Optional[DefaultCase] = self.params.get("default_case")
-        cast = self.params.get("cast")
 
         if not branches and not default_case:
             raise ValueError(
@@ -167,3 +169,15 @@ class CaseWhenRule(GenerationRule):
                 output = output.otherwise(F.lit(None))
 
         return output
+
+    def collect_parent_columns(self) -> Set[str]:
+        branches: List[WhenThenConditional] = self.params.get("branches", [])
+
+        distinct_parent_cols = set()
+
+        for when_condition in branches:
+            distinct_parent_cols.update(
+                re.findall(r"`([^`]+)`", when_condition.when_clause)
+            )
+
+        return distinct_parent_cols

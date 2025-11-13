@@ -1,27 +1,17 @@
 from typing import Optional, TYPE_CHECKING
-
-from pyspark.sql import DataFrame, Column, types as T, functions as F
+from pyspark.sql import DataFrame, types as T
 
 from respark.relationships import FkConstraint
-from respark.rules import GenerationRule, register_generation_rule
+from respark.rules.registry import register_generation_rule
+from ..rule_types import RelationalGenerationRule
 from respark.sampling import UniformParentSampler
 
 if TYPE_CHECKING:
     from respark.runtime import ResparkRuntime
 
 
-@register_generation_rule("const_literal")
-class ConstLiteralRule(GenerationRule):
-    """
-    A simple rule to allow populating a column with one expected field
-    """
-
-    def generate_column(self):
-        return F.lit(self.params["value"])
-
-
 @register_generation_rule("sample_from_reference")
-class SampleFromReference(GenerationRule):
+class SampleFromReference(RelationalGenerationRule):
     """
     Uniformly sample values from the DISTINCT set in a named reference DataFrame.
 
@@ -30,19 +20,9 @@ class SampleFromReference(GenerationRule):
       - column: str   # reference column to draw values from (distinct)
     """
 
-    # Relational rule: generate_column() not used
-    def generate_column(self) -> Column:
-        raise NotImplementedError(
-            "SampleFromReference is relational; use apply(df, runtime, target_col)."
-        )
-
     def apply(
-        self, df: DataFrame, runtime: Optional["ResparkRuntime"], target_col: str
+        self, runtime: "ResparkRuntime", base_df: DataFrame, target_col: str
     ) -> DataFrame:
-        if runtime is None:
-            raise RuntimeError(
-                "SampleFromReference requires runtime (for references and distributed chooser)."
-            )
 
         ref_name = self.params["reference_name"]
         ref_col = self.params["column"]
@@ -53,19 +33,21 @@ class SampleFromReference(GenerationRule):
         if ref_name not in runtime.references:
             raise ValueError(f"Reference '{ref_name}' not found in runtime.references")
 
+        reference_df = runtime.references[ref_name]
+
         sampler = UniformParentSampler()
         artifact = sampler.ensure_artifact_for_parent(
             cache_key=(ref_name, ref_col),
-            parent_df=runtime.references[ref_name],
+            parent_df=reference_df,
             parent_col=ref_col,
         )
 
         rng = self.rng()
-        out_type: T.DataType = df.schema[target_col].dataType
+        out_type: T.DataType = reference_df.schema[target_col].dataType
 
         salt_base = f"{self.params.get('__table', 'table')}.{target_col}"
         return sampler.assign_uniform_from_artifact(
-            child_df=df,
+            child_df=base_df,
             artifact=artifact,
             rng=rng,
             out_col=target_col,
@@ -74,9 +56,12 @@ class SampleFromReference(GenerationRule):
             salt_position=f"{salt_base}:pos",
         )
 
+    def collect_parent_columns(self):
+        pass
+
 
 @register_generation_rule("fk_from_parent")
-class ForeignKeyFromParent(GenerationRule):
+class ForeignKeyFromParent(RelationalGenerationRule):
     """
     Populate a child FK by uniformly sampling the parent's PK values
     from the synthetic parent produced in a prior DAG layer.
@@ -85,12 +70,6 @@ class ForeignKeyFromParent(GenerationRule):
       - constraint: FkConstraint    # describes pk_table, pk_column, fk_table, fk_column, name
     """
 
-    # Relational rule: generate_column() not used
-    def generate_column(self) -> Column:
-        raise NotImplementedError(
-            "ForeignKeyFromParent is relational; use apply(df, runtime, target_col)."
-        )
-
     def _find_fk_constraint(
         self, runtime: "ResparkRuntime", fk_table: str, fk_column: str
     ) -> "FkConstraint":
@@ -98,10 +77,15 @@ class ForeignKeyFromParent(GenerationRule):
         if runtime.generation_plan is None:
             raise ValueError(f"No generation plan found for {fk_table}.{fk_column}")
 
+        fk_constraints_map = runtime.generation_plan.fk_constraints
+        if not fk_constraints_map:
+            raise ValueError("No FK constraints registered in generation plan.")
+
         matches = [
-            c
-            for c in runtime.generation_plan.fk_constraints.values()
-            if c.fk_table == fk_table and c.fk_column == fk_column
+            fk_constraint
+            for fk_constraint in fk_constraints_map.values()
+            if fk_constraint.fk_table == fk_table
+            and fk_constraint.fk_column == fk_column
         ]
         if not matches:
             raise ValueError(f"No FK constraint found for {fk_table}.{fk_column}")
@@ -114,10 +98,9 @@ class ForeignKeyFromParent(GenerationRule):
         return matches[0]
 
     def apply(
-        self, df: DataFrame, runtime: Optional["ResparkRuntime"], target_col: str
+        self, runtime: "ResparkRuntime", base_df: DataFrame, target_col: str
     ) -> DataFrame:
-        if runtime is None:
-            raise RuntimeError("ForeignKeyFromParent requires runtime.")
+
         fk_table = self.params.get("__table")
         if not fk_table:
             raise ValueError(
@@ -150,11 +133,11 @@ class ForeignKeyFromParent(GenerationRule):
 
         rng = self.rng()
 
-        out_type: T.DataType = df.schema[target_col].dataType
+        out_type: T.DataType = parent_df.schema[target_col].dataType
 
         salt = constraint.name or f"{constraint.fk_table}.{constraint.fk_column}"
         return sampler.assign_uniform_from_artifact(
-            child_df=df,
+            child_df=base_df,
             artifact=artifact,
             rng=rng,
             out_col=target_col,
@@ -162,3 +145,6 @@ class ForeignKeyFromParent(GenerationRule):
             salt_partition=f"{salt}:part",
             salt_position=f"{salt}:pos",
         )
+
+    def collect_parent_columns(self):
+        pass

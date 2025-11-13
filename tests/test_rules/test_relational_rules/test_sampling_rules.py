@@ -2,8 +2,8 @@ import pytest
 from typing import Any, cast
 from pyspark.sql import functions as F
 from pyspark.sql import types as T
-import respark.rules.core_rules as core_rules
-from respark.rules import GENERATION_RULES_REGISTRY
+from respark.rules.relational_rules.sampling_rules import SampleFromReference
+from respark.rules.registry import GENERATION_RULES_REGISTRY
 
 
 class MockRuntime:
@@ -27,7 +27,7 @@ def test_rules_are_registered_under_new_names():
 
 
 def test_sample_from_reference_happy_path(employees_df, departments_df, test_seed):
-    rule = core_rules.SampleFromReference(
+    rule = SampleFromReference(
         reference_name="departments",
         column="department_id",
         __seed=test_seed,
@@ -38,7 +38,7 @@ def test_sample_from_reference_happy_path(employees_df, departments_df, test_see
     runtime = MockRuntime(references={"departments": departments_df})
 
     out = rule.apply(
-        df=employees_df,
+        base_df=employees_df,
         runtime=cast(Any, runtime),
         target_col="department_id",
     )
@@ -57,22 +57,10 @@ def test_sample_from_reference_happy_path(employees_df, departments_df, test_see
     assert len(sampled_ids) >= 1
 
 
-def test_sample_from_reference_missing_runtime_raises(employees_df, test_seed):
-    rule = core_rules.SampleFromReference(
-        reference_name="departments",
-        column="department_id",
-        __seed=test_seed,
-        __row_idx=F.lit(0),
-        __table="employees",
-    )
-    with pytest.raises(RuntimeError):
-        rule.apply(employees_df, runtime=None, target_col="department_id")
-
-
 def test_sample_from_reference_missing_reference_key_raises(
     employees_df, departments_df, test_seed
 ):
-    rule = core_rules.SampleFromReference(
+    rule = SampleFromReference(
         reference_name="missing_ref",
         column="department_id",
         __seed=test_seed,
@@ -81,14 +69,16 @@ def test_sample_from_reference_missing_reference_key_raises(
     )
     runtime = MockRuntime(references={"departments": departments_df})
     with pytest.raises(ValueError) as exc:
-        rule.apply(employees_df, runtime=cast(Any, runtime), target_col="department_id")
+        rule.apply(
+            base_df=employees_df, runtime=cast(Any, runtime), target_col="department_id"
+        )
     assert "not found" in str(exc.value).lower()
 
 
 def test_sample_from_reference_missing_params_raises_value_error(
     employees_df, test_seed
 ):
-    rule = core_rules.SampleFromReference(
+    rule = SampleFromReference(
         __seed=test_seed,
         __row_idx=F.lit(0),
         __table="employees",
@@ -97,7 +87,7 @@ def test_sample_from_reference_missing_params_raises_value_error(
 
     with pytest.raises(KeyError):
         rule.apply(
-            df=employees_df,
+            base_df=employees_df,
             runtime=cast(Any, runtime),
             target_col="department_id",
         )

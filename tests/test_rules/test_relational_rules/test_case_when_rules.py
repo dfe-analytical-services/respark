@@ -1,11 +1,21 @@
 import pytest
+from typing import Any, cast
+
 from pyspark.sql import functions as F, types as T
-from respark.rules.conditional_rules import (
+from respark.rules.relational_rules.case_when import (
     CaseWhenRule,
     WhenThenConditional,
     ThenAction,
     DefaultCase,
 )
+
+
+class MockRuntime:
+    """
+    A simple mock runtime with the attributes used by the rules.
+    """
+
+    def __init__(self): ...
 
 
 def create_test_parent_col(spark, rows, schema):
@@ -34,7 +44,11 @@ def test_expr_branches_first_match_wins(spark):
         __column="priority",
     )
 
-    output = rule.apply(parent_col_df, runtime=None, target_col="grade")
+    runtime = MockRuntime()
+
+    output = rule.apply(
+        runtime=cast(Any, runtime), base_df=parent_col_df, target_col="grade"
+    )
     vals = [r["grade"] for r in output.select("grade").orderBy("score").collect()]
     assert vals == ["D", "C", "B", "A"]
 
@@ -63,7 +77,11 @@ def test_then_rule_branch_invokes_subrule_and_params_flow(spark):
         __column="child_col",
     )
 
-    output = rule.apply(parent_col_df, runtime=None, target_col="child_col")
+    runtime = MockRuntime()
+    output = rule.apply(
+        runtime=cast(Any, runtime), base_df=parent_col_df, target_col="child_col"
+    )
+
     assert [r["child_col"] for r in output.select("child_col").collect()] == [
         "some_string",
         None,
@@ -96,7 +114,10 @@ def test_then_expr_can_reference_other_columns(spark):
         __column="B",
     )
 
-    output = rule.apply(parent_col_df, runtime=None, target_col="B")
+    runtime = MockRuntime()
+    output = rule.apply(
+        runtime=cast(Any, runtime), base_df=parent_col_df, target_col="B"
+    )
     vals = [r["B"] for r in output.select("B").collect()]
     assert vals[0] == 11 and vals[1] is None
 
@@ -129,7 +150,11 @@ def test_four_branches_order_and_exclusivity(spark):
         __column="penalty_band",
     )
 
-    output = rule.apply(parent_col_df, runtime=None, target_col="penalty_band")
+    runtime = MockRuntime()
+    output = rule.apply(
+        runtime=cast(Any, runtime), base_df=parent_col_df, target_col="penalty_band"
+    )
+
     vals = [
         r["penalty_band"]
         for r in output.orderBy("warning_level").select("penalty_band").collect()
@@ -170,7 +195,10 @@ def test_default_case_applies_when_no_match(spark):
         __column="child_col",
     )
 
-    output = rule.apply(parent_col_df, runtime=None, target_col="child_col")
+    runtime = MockRuntime()
+    output = rule.apply(
+        runtime=cast(Any, runtime), base_df=parent_col_df, target_col="child_col"
+    )
     assert [r["child_col"] for r in output.select("child_col").collect()] == [
         None,
         None,

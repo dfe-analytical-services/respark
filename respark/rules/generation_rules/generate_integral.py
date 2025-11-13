@@ -1,6 +1,7 @@
 from typing import Literal
 from pyspark.sql import Column
-from .core_rules import register_generation_rule, GenerationRule
+from ..rule_types import GenerationRule
+from ..registry import register_generation_rule
 from respark.core import INTEGRAL_BOUNDS, INTEGRAL_CAST
 from respark.random import randint_int
 

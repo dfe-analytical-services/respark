@@ -1,23 +1,26 @@
 import json
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Set
 from dataclasses import dataclass, field, asdict
 from ..relationships import FkConstraint, InternalColDepndency, DAG, CycleError
+from respark.rules.rule_types import RelationalGenerationRule
+from respark.rules.registry import get_generation_rule
 
 
 @dataclass
 class ColumnGenerationPlan:
     name: str
     data_type: str
-    rule: str
+    rule_name: str
     params: Dict[str, Any] = field(default_factory=dict)
-    parent_columns: Optional[List[str]] = None
+    parent_columns: Set[str] = field(default_factory=set)
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
 
-    def to_json(self, path: str) -> None:
-        with open(path, "w") as f:
-            json.dump(self.to_dict(), f, sort_keys=False)
+    def update_parent_columns(self):
+        rule = get_generation_rule(rule_name=self.rule_name, params=self.params)
+        if isinstance(rule, RelationalGenerationRule):
+            self.parent_columns = rule.collect_parent_columns()
 
 
 @dataclass
@@ -39,36 +42,22 @@ class TableGenerationPlan:
     # Intra-Table Column Relationships
     ##
 
-    def add_column_dependency(self, parent_col: str, child_col: str) -> str:
-        """
-        Add a new column dependency constraint. Returns the generated name.
-        Raises ValueError if a constraint with the same name already exists.
-        """
+    def update_column_dependencies(self):
 
-        name = InternalColDepndency.derive_name(parent_col, child_col)
+        updated_col_dependencies = {}
+        for col_plan in self.column_plans:
+            col_plan.update_parent_columns()
+            parent_cols_set = col_plan.parent_columns
 
-        if name in self.column_dependencies:
-            raise ValueError(f"Constraint '{name}' already present")
-
-        self.column_dependencies[name] = InternalColDepndency(
-            parent_col=parent_col,
-            child_col=child_col,
-        )
-
+            if parent_cols_set:
+                for parent_col in parent_cols_set:
+                    name = InternalColDepndency.derive_name(parent_col, self.name)
+                    updated_col_dependencies[name] = InternalColDepndency(
+                        parent_col=parent_col,
+                        child_col=self.name,
+                    )
+        self.column_dependencies = updated_col_dependencies
         self.column_generation_layers = None
-        return name
-
-    def remove_column_dependency(self, dep_name: str) -> None:
-        """
-        Remove by name. Raise KeyError if not found.
-        """
-        for name, dep in self.column_dependencies.items():
-            if dep.name == dep_name:
-                del self.column_dependencies[name]
-                self.column_generation_layers = None
-                return
-
-        raise KeyError(f"No constraint with name '{dep_name}' is currently stored")
 
     def get_column_dependencies(self) -> Dict[str, InternalColDepndency]:
         """
@@ -77,6 +66,9 @@ class TableGenerationPlan:
         return self.column_dependencies
 
     def build_inter_col_dependencies(self) -> None:
+
+        self.update_column_dependencies()
+
         try:
             col_names = {plan.name for plan in self.column_plans}
             col_dependencies = (
@@ -208,7 +200,7 @@ class SchemaGenerationPlan:
             if table.name == table_name:
                 for column_plan in table.column_plans:
                     if column_plan.name == column_name:
-                        column_plan.rule = new_rule
+                        column_plan.rule_name = new_rule
                         return
         raise ValueError(f"Column {column_name} not found in table {table_name}.")
 
