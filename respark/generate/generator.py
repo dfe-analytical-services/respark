@@ -169,7 +169,10 @@ class SynthTableGenerator:
 
         rule = get_generation_rule(column_plan.rule_name, **exec_params)
 
-        synth_col_df = rule.apply(base_df, self.runtime, target_col=col_name)
+        synth_col_df = rule.apply(
+            runtime=self.runtime, base_df=base_df, target_col=col_name
+        )
+
         synth_col_df = synth_col_df.withColumn(
             col_name, F.col(col_name).cast(target_dtype)
         )

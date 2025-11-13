@@ -1,3 +1,5 @@
+
+import re
 from pyspark.sql import Column, functions as F
 
 from ..rule_types import RelationalGenerationRule
@@ -15,4 +17,12 @@ class RowExpressionRule(RelationalGenerationRule):
         return F.expr(sql_expression)
 
     def collect_parent_columns(self):
-        pass
+        distinct_parent_cols = set()
+        sql_expression = self.params["sql_expression"]
+
+        distinct_parent_cols.update(
+                re.findall(r"`([^`]+)`", sql_expression)
+            )
+
+        return distinct_parent_cols
+

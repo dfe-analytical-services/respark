@@ -21,12 +21,8 @@ class SampleFromReference(RelationalGenerationRule):
     """
 
     def apply(
-        self, base_df: DataFrame, runtime: Optional["ResparkRuntime"], target_col: str
+        self, runtime: "ResparkRuntime", base_df: DataFrame, target_col: str
     ) -> DataFrame:
-        if runtime is None:
-            raise RuntimeError(
-                "SampleFromReference requires runtime (for references and distributed chooser)."
-            )
 
         ref_name = self.params["reference_name"]
         ref_col = self.params["column"]
@@ -102,10 +98,9 @@ class ForeignKeyFromParent(RelationalGenerationRule):
         return matches[0]
 
     def apply(
-        self, base_df: DataFrame, runtime: Optional["ResparkRuntime"], target_col: str
+        self, runtime: "ResparkRuntime", base_df: DataFrame, target_col: str
     ) -> DataFrame:
-        if runtime is None:
-            raise RuntimeError("ForeignKeyFromParent requires runtime.")
+
         fk_table = self.params.get("__table")
         if not fk_table:
             raise ValueError(

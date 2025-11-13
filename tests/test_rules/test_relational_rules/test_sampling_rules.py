@@ -57,18 +57,6 @@ def test_sample_from_reference_happy_path(employees_df, departments_df, test_see
     assert len(sampled_ids) >= 1
 
 
-def test_sample_from_reference_missing_runtime_raises(employees_df, test_seed):
-    rule = SampleFromReference(
-        reference_name="departments",
-        column="department_id",
-        __seed=test_seed,
-        __row_idx=F.lit(0),
-        __table="employees",
-    )
-    with pytest.raises(RuntimeError):
-        rule.apply(employees_df, runtime=None, target_col="department_id")
-
-
 def test_sample_from_reference_missing_reference_key_raises(
     employees_df, departments_df, test_seed
 ):
@@ -81,7 +69,9 @@ def test_sample_from_reference_missing_reference_key_raises(
     )
     runtime = MockRuntime(references={"departments": departments_df})
     with pytest.raises(ValueError) as exc:
-        rule.apply(employees_df, runtime=cast(Any, runtime), target_col="department_id")
+        rule.apply(
+            base_df=employees_df, runtime=cast(Any, runtime), target_col="department_id"
+        )
     assert "not found" in str(exc.value).lower()
 
 

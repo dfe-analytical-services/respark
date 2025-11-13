@@ -34,7 +34,7 @@ class GenerationRule(ABC):
         raise NotImplementedError
 
     def apply(
-        self, base_df: DataFrame, runtime: "ResparkRuntime", target_col: str
+        self, runtime: "ResparkRuntime", base_df: DataFrame, target_col: str
     ) -> DataFrame:
         """
         Default behavior for non-relational rules: attach a Column built by generate_column().

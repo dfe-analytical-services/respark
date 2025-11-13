@@ -49,12 +49,13 @@ class TableGenerationPlan:
             col_plan.update_parent_columns()
             parent_cols_set = col_plan.parent_columns
 
-            for parent_col in parent_cols_set:
-                name = InternalColDepndency.derive_name(parent_col, self.name)
-                updated_col_dependencies[name] = InternalColDepndency(
-                    parent_col=parent_col,
-                    child_col=self.name,
-                )
+            if parent_cols_set:
+                for parent_col in parent_cols_set:
+                    name = InternalColDepndency.derive_name(parent_col, self.name)
+                    updated_col_dependencies[name] = InternalColDepndency(
+                        parent_col=parent_col,
+                        child_col=self.name,
+                    )
         self.column_dependencies = updated_col_dependencies
         self.column_generation_layers = None
 
