@@ -1,22 +1,12 @@
-from typing import Dict, Any, Optional, List, TYPE_CHECKING
-import hashlib
+from typing import Dict, Optional, List, TYPE_CHECKING
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from respark.random.seeding import vary_seed
 from respark.plan import SchemaGenerationPlan, TableGenerationPlan, ColumnGenerationPlan
-from respark.rules.registry import get_generation_rule
 from pyspark.sql import SparkSession, DataFrame, functions as F, types as T
 
 
 if TYPE_CHECKING:
     from respark.runtime import ResparkRuntime
-
-
-def _create_stable_seed(base_seed: int, *tokens: Any) -> int:
-    payload = "|".join([str(base_seed), *map(str, tokens)]).encode("utf-8")
-    digest = hashlib.sha256(payload).digest()
-    val64 = int.from_bytes(digest[:8], byteorder="big", signed=False)
-    mixed = val64 ^ (base_seed & 0x7FFFFFFFFFFFFFFF)
-
-    return mixed & 0x7FFFFFFFFFFFFFFF
 
 
 TYPE_DISPATCH = {
@@ -148,7 +138,7 @@ class SynthTableGenerator:
         except KeyError:
             raise ValueError(f"Unsupported data type: '{target_dtype_str}'")
 
-        col_seed = _create_stable_seed(self.seed, self.table_name, col_name)
+        col_seed = vary_seed(self.seed, self.table_name, col_name)
 
         exec_params = {
             **column_plan.rule.params,

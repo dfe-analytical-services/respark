@@ -1,7 +1,6 @@
 import pytest
 from typing import cast
 from pyspark.sql import SparkSession, DataFrame
-
 from respark import ResparkRuntime
 
 from .data import (

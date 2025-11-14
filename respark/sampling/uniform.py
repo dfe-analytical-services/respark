@@ -101,7 +101,7 @@ class UniformParentSampler:
             return child_df.withColumn(out_col, F.lit(None).cast(out_type))
 
         # 1) Choose partition via range-join to the CDF
-        u1 = rng.uniform_01_double(salt_partition)
+        u1 = rng.uniform_double_01(salt_partition)
         ch = child_df.withColumn("__u__", u1)
         ch = ch.join(
             F.broadcast(artifact.part_cdf),
@@ -110,7 +110,7 @@ class UniformParentSampler:
         ).withColumnRenamed("__ppart__", "__ppart_c__")
 
         # 2) Choose a local position within the selected partition [1..__pcount__]
-        u2 = rng.uniform_01_double(salt_position)
+        u2 = rng.uniform_double_01(salt_position)
         ch = ch.withColumn(
             "__tpos__", (F.floor(u2 * F.col("__pcount__")) + F.lit(1)).cast("int")
         )

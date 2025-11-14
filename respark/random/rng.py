@@ -44,8 +44,5 @@ class RNG:
         Assumes lo <= hi. Caller handles invalid/nulls.
         """
         range_size = max_col - min_col + F.lit(1)
-        offset = (
-            F.floor(self.uniform_double_01(salt) * range_size)
-            .cast("int")
-          )  
+        offset = F.floor(self.uniform_double_01(salt) * range_size).cast("int")
         return (min_col + offset).cast("int")

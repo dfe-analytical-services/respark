@@ -30,13 +30,10 @@ class RandomDateRule(GenerationRule):
 
         rng = self.rng()
 
-        start = F.lit(min_iso).cast("date")
-        
         offset = rng.uniform_int_inclusive(
-            min_col=F.lit(0),
-            max_col= days_range,
-            salt="something_for_now")
-        return F.date_add(start, offset).cast("date")
+            min_col=F.lit(0), max_col=days_range, salt="something_for_now"
+        )
+        return F.date_add(min_date_col, offset).cast("date")
 
 
 @register_generation_rule("random_timestamp_ltz")

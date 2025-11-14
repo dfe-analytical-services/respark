@@ -4,8 +4,8 @@ from ..rule_types import GenerationRule
 from ..registry import register_generation_rule
 
 
-@register_generation_rule("const_literal")
-class ConstLiteralRule(GenerationRule):
+@register_generation_rule("const_value")
+class ConstValueRule(GenerationRule):
     """
     A simple rule to allow populating a column with one expected field
     """
@@ -33,7 +33,7 @@ class RandomFromSet(GenerationRule):
         n = len(valid_options)
 
         rng = self.rng()
-        u = rng.uniform_01_double(self.seed, self.row_idx)
+        u = rng.uniform_double_01(self.seed, self.row_idx)
 
         idx = F.floor(u * F.lit(n)).cast("int")
 
