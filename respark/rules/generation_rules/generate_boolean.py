@@ -10,6 +10,6 @@ class RandomBooleanRule(GenerationRule):
         percentage_true = float(self.params.get("percentage_true", 0.5))
         rng = self.rng()
 
-        return (rng.uniform_01_double("bool") < F.lit(percentage_true)).cast(
+        return (rng.uniform_double_01("bool") < F.lit(percentage_true)).cast(
             T.BooleanType()
         )

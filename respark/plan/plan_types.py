@@ -46,7 +46,7 @@ class TableGenerationPlan:
 
     def update_column_dependencies(self):
 
-        updated_col_dependencies : Dict[str, InternalColDepndency] = {}
+        updated_col_dependencies: Dict[str, InternalColDepndency] = {}
         for col_plan in self.column_plans.values():
             col_plan.update_parent_columns()
             parent_cols_set = col_plan.parent_columns

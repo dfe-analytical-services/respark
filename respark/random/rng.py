@@ -27,7 +27,7 @@ class RNG:
         """Create a 64-bit hash Column from (seed, salt..., row_idx)."""
         return hash64(self.seed, self.row_idx, *salt)
 
-    def uniform_01_double(self, *salt: Any) -> Column:
+    def uniform_double_01(self, *salt: Any) -> Column:
         """Uniform double in [0, 1) with ~53 bits of precision.
 
         Derived by taking the lower 53 bits of the 64-bit hash and scaling.
@@ -35,3 +35,14 @@ class RNG:
         return (F.pmod(self._hash64(*salt), F.lit(_U53_INT)) / F.lit(_U53)).cast(
             "double"
         )
+
+    def uniform_int_inclusive(
+        self, min_col: Column, max_col: Column, salt: str
+    ) -> Column:
+        """
+        Sample an integer uniformly from [lo, hi], inclusive.
+        Assumes lo <= hi. Caller handles invalid/nulls.
+        """
+        range_size = max_col - min_col + F.lit(1)
+        offset = F.floor(self.uniform_double_01(salt) * range_size).cast("int")
+        return (min_col + offset).cast("int")
