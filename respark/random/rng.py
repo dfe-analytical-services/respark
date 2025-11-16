@@ -1,5 +1,6 @@
 from typing import Any
 from pyspark.sql import Column, functions as F
+from respark.core.numeric_types import INTEGRAL_BOUNDS
 from .hashing import hash64
 
 # Constants used to build uniform doubles with ~53 bits of precision.
@@ -36,13 +37,33 @@ class RNG:
             "double"
         )
 
+    def uniform_long_inclusive(
+        self, min_col: Column, max_col: Column, salt: str
+    ) -> Column:
+        """
+        Sample a LONG uniformly from [min_col, max_col], inclusive.
+        Assumes caller handles nulls/invalids.
+        """
+        min_col = min_col.cast("long")
+        max_col = max_col.cast("long")
+        range_double = (max_col - min_col).cast("double")
+        offset = F.floor(self.uniform_double_01(salt) * range_double).cast("long")
+        return (min_col + offset).cast("long")
+
     def uniform_int_inclusive(
         self, min_col: Column, max_col: Column, salt: str
     ) -> Column:
         """
-        Sample an integer uniformly from [lo, hi], inclusive.
-        Assumes lo <= hi. Caller handles invalid/nulls.
+        Sample an INT uniformly from [min_col, max_col], inclusive.
+        Delegates to the LONG variant after clamping bounds to int range.
         """
-        range_size = max_col - min_col + F.lit(1)
-        offset = F.floor(self.uniform_double_01(salt) * range_size).cast("int")
-        return (min_col + offset).cast("int")
+        INT_MIN = INTEGRAL_BOUNDS["int"]["min_value"]
+        INT_MAX = INTEGRAL_BOUNDS["int"]["max_value"]
+
+        min_col_clamped = F.greatest(min_col.cast("long"), F.lit(INT_MIN).cast("long"))
+        max_col_clamped = F.least(max_col.cast("long"), F.lit(INT_MAX).cast("long"))
+
+        sampled_long = self.uniform_long_inclusive(
+            min_col_clamped, max_col_clamped, salt
+        )
+        return sampled_long.cast("int")

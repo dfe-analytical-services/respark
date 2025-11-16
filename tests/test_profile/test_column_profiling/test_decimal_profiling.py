@@ -9,7 +9,7 @@ from respark.profile.column_profiles.decimal_profile import (
 
 
 @pytest.mark.parametrize(
-    "precision, scale, rows, nullable, expected_min, expected_max, expected_mean",
+    "precision, scale, rows, nullable, expected_min, expected_max",
     [
         pytest.param(
             10,
@@ -18,7 +18,6 @@ from respark.profile.column_profiles.decimal_profile import (
             False,
             Decimal("1.23"),
             Decimal("4.56"),
-            float((Decimal("1.23") + Decimal("4.56") + Decimal("3.21")) / 3),
             id="p10-s2-simple",
         ),
         pytest.param(
@@ -28,7 +27,6 @@ from respark.profile.column_profiles.decimal_profile import (
             True,
             Decimal("-2.500"),
             Decimal("3.250"),
-            float((Decimal("-2.500") + Decimal("1.250") + Decimal("3.250")) / 3),
             id="p6-s3-negatives-with-null",
         ),
         pytest.param(
@@ -38,13 +36,12 @@ from respark.profile.column_profiles.decimal_profile import (
             True,
             None,
             None,
-            None,
             id="p8-s2-all-nulls",
         ),
     ],
 )
 def test_decimal_profile_scenarios(
-    spark, precision, scale, rows, nullable, expected_min, expected_max, expected_mean
+    spark, precision, scale, rows, nullable, expected_min, expected_max
 ):
     schema = T.StructType(
         [
@@ -58,8 +55,7 @@ def test_decimal_profile_scenarios(
     decimal_profile = profile_decimal_column(df, "some_decimal")
 
     assert isinstance(decimal_profile, DecimalColumnProfile)
-    assert decimal_profile.name == "some_decimal"
-    assert decimal_profile.normalised_type == "numeric"
+    assert decimal_profile.col_name == "some_decimal"
     assert decimal_profile.nullable is nullable
     assert decimal_profile.precision == precision
     assert decimal_profile.scale == scale
@@ -68,13 +64,10 @@ def test_decimal_profile_scenarios(
     if expected_min is None:
         assert decimal_profile.min_value is None
         assert decimal_profile.max_value is None
-        assert decimal_profile.mean_value is None
+
     else:
         assert decimal_profile.min_value == expected_min
         assert decimal_profile.max_value == expected_max
-        assert decimal_profile.mean_value == pytest.approx(
-            float(expected_mean), rel=0, abs=1e-12
-        )
 
     params = decimal_profile.type_specific_params()
     assert params["precision"] == precision
@@ -82,13 +75,10 @@ def test_decimal_profile_scenarios(
     if decimal_profile.min_value is None:
         assert params["min_value"] is None
         assert params["max_value"] is None
-        assert params["mean_value"] is None
+
     else:
-        assert params["min_value"] == str(decimal_profile.min_value)
-        assert params["max_value"] == str(decimal_profile.max_value)
-        assert params["mean_value"] == pytest.approx(
-            decimal_profile.mean_value, rel=0, abs=1e-12
-        )
+        assert params["min_value"] == decimal_profile.min_value
+        assert params["max_value"] == decimal_profile.max_value
 
 
 @pytest.mark.parametrize(

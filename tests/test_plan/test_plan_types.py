@@ -71,14 +71,14 @@ def test_get_column_plan():
                 row_count=200,
                 column_plans={
                     "first_name": ColumnGenerationPlan(
-                        name="first_name",
+                        col_name="first_name",
                         data_type="string",
                         rule=get_generation_rule(
                             "random_string", **{"min_length": 2, "max_length": 10}
                         ),
                     ),
                     "department_id": ColumnGenerationPlan(
-                        name="department_id",
+                        col_name="department_id",
                         data_type="int",
                         rule=get_generation_rule(
                             "sample_from_reference", **{"min_value": 1, "max_value": 10}

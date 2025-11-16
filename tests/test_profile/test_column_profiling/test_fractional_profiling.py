@@ -77,8 +77,7 @@ def test_fractional_profile_edge_cases(
 
     fractional_profile = profile_fractional_column(df, "some_fractional_field")
     assert isinstance(fractional_profile, expected_cls)
-    assert fractional_profile.name == "some_fractional_field"
-    assert fractional_profile.normalised_type == "numeric"
+    assert fractional_profile.col_name == "some_fractional_field"
     assert fractional_profile.nullable is nullable
     assert fractional_profile.default_rule() == expected_rule
 

@@ -8,7 +8,7 @@ from respark.rules.registry import get_generation_rule
 
 @dataclass
 class ColumnGenerationPlan:
-    name: str
+    col_name: str
     data_type: str
     rule: GenerationRule
     parent_columns: Set[str] = field(default_factory=set)
@@ -53,10 +53,12 @@ class TableGenerationPlan:
 
             if parent_cols_set:
                 for parent_col in parent_cols_set:
-                    name = InternalColDepndency.derive_name(parent_col, col_plan.name)
+                    name = InternalColDepndency.derive_name(
+                        parent_col, col_plan.col_name
+                    )
                     updated_col_dependencies[name] = InternalColDepndency(
                         parent_col=parent_col,
-                        child_col=col_plan.name,
+                        child_col=col_plan.col_name,
                     )
         self.column_dependencies.update(updated_col_dependencies)
         self.column_generation_layers = None

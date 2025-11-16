@@ -1,15 +1,13 @@
 from dataclasses import dataclass
 from typing import ClassVar, TypedDict, Literal, Optional
-from pyspark.sql import DataFrame, SparkSession, functions as F, types as T
-from .base_column_profile import BaseColumnProfile
+from pyspark.sql import DataFrame, functions as F, types as T
+from .base_column_profile import BaseColumnProfile, calculate_null_stats
 
 
 class DateTimeParams(TypedDict):
     min_iso: Optional[str]
     max_iso: Optional[str]
-    frac_precision: Optional[int]
-    session_time_zone: Optional[str]
-    spark_timestamp_alias: Optional[str]
+    precision: Optional[int]
     min_epoch_micros: Optional[int]
     max_epoch_micros: Optional[int]
 
@@ -17,25 +15,17 @@ class DateTimeParams(TypedDict):
 @dataclass(slots=True)
 class DateTimeColumnProfile(BaseColumnProfile[DateTimeParams]):
     spark_subtype: ClassVar[Literal["date", "timestamp_ltz", "timestamp_ntz"]]
-
     min_iso: Optional[str] = None
     max_iso: Optional[str] = None
-    frac_precision: Optional[int] = None
-    session_time_zone: Optional[str] = None
-    spark_timestamp_alias: Optional[str] = None
+    precision: Optional[int] = None
     min_epoch_micros: Optional[int] = None
     max_epoch_micros: Optional[int] = None
-
-    def default_rule(self) -> str:
-        return f"random_{self.spark_subtype}"
 
     def type_specific_params(self) -> DateTimeParams:
         return {
             "min_iso": self.min_iso,
             "max_iso": self.max_iso,
-            "frac_precision": self.frac_precision,
-            "session_time_zone": self.session_time_zone,
-            "spark_timestamp_alias": self.spark_timestamp_alias,
+            "precision": self.precision,
             "min_epoch_micros": self.min_epoch_micros,
             "max_epoch_micros": self.max_epoch_micros,
         }
@@ -57,14 +47,18 @@ class TimestampNTZColumnProfile(DateTimeColumnProfile):
     spark_subtype = "timestamp_ntz"
 
 
-def profile_datetime_column(df: DataFrame, col_name: str) -> DateTimeColumnProfile:
-
-    field = df.schema[col_name]
+def profile_datetime_column(
+    source_df: DataFrame, col_name: str
+) -> DateTimeColumnProfile:
+    field = source_df.schema[col_name]
     nullable = field.nullable
+    null_ratio = (
+        calculate_null_stats(source_df=source_df, col_name=col_name)
+        if nullable
+        else 0.0
+    )
     data_type = field.dataType
-    frac_precision: Optional[int] = None
-    session_time_zone: Optional[str] = None
-    spark_timestamp_alias: Optional[str] = None
+    precision: Optional[int] = None
     min_epoch_micros: Optional[int] = None
     max_epoch_micros: Optional[int] = None
 
@@ -77,7 +71,7 @@ def profile_datetime_column(df: DataFrame, col_name: str) -> DateTimeColumnProfi
     else:
         raise TypeError(f"Column {col_name} is not a datetime type: {data_type}")
 
-    col_profile = df.select(
+    col_profile = source_df.select(
         F.min(F.col(col_name)).alias("min_ts"), F.max(F.col(col_name)).alias("max_ts")
     )
 
@@ -97,7 +91,7 @@ def profile_datetime_column(df: DataFrame, col_name: str) -> DateTimeColumnProfi
     max_iso = col_stats["max_iso"] if col_stats and col_stats["max_iso"] else None
 
     if isinstance(data_type, (T.TimestampType, T.TimestampNTZType)):
-        frac_row = df.select(
+        precision_row = source_df.select(
             F.max(
                 F.length(
                     F.regexp_extract(
@@ -108,18 +102,14 @@ def profile_datetime_column(df: DataFrame, col_name: str) -> DateTimeColumnProfi
                 )
             ).alias("precision")
         ).first()
-        if frac_row and frac_row["precision"] is not None:
+        if precision_row and precision_row["precision"] is not None:
             try:
-                frac_precision = int(frac_row["precision"])
+                precision = int(precision_row["precision"])
             except Exception:
-                frac_precision = None
-
-        sess: SparkSession = df.sparkSession
-        session_time_zone = sess.conf.get("spark.sql.session.timeZone", None)
-        spark_timestamp_alias = sess.conf.get("spark.sql.timestampType", None)
+                precision = None
 
         if isinstance(data_type, T.TimestampType):
-            us_row = df.select(
+            us_row = source_df.select(
                 F.unix_micros(F.min(F.col(col_name))).alias("min_us"),
                 F.unix_micros(F.max(F.col(col_name))).alias("max_us"),
             ).first()
@@ -135,14 +125,12 @@ def profile_datetime_column(df: DataFrame, col_name: str) -> DateTimeColumnProfi
             )
 
     return DateTimeClass(
-        name=col_name,
-        normalised_type="datetime",
+        col_name=col_name,
         nullable=nullable,
+        null_ratio=null_ratio,
         min_iso=min_iso,
         max_iso=max_iso,
-        frac_precision=frac_precision,
-        session_time_zone=session_time_zone,
-        spark_timestamp_alias=spark_timestamp_alias,
+        precision=precision,
         min_epoch_micros=min_epoch_micros,
         max_epoch_micros=max_epoch_micros,
     )

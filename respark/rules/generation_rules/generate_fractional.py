@@ -11,12 +11,23 @@ class BaseFractionalRule(GenerationRule):
     def generate_column(self) -> Column:
 
         default_min, default_max = FRACTIONAL_BOUNDS[self.spark_subtype]
-        min_value = float(self.params.get("min_value", default_min))
-        max_value = float(self.params.get("max_value", default_max))
+
+        min_value_col = self.params.get("min_value_col")
+        if min_value_col is None:
+            min_value = float(self.params.get("min_value", default_min))
+            min_value_col = F.lit(min_value)
+
+        max_value_col = self.params.get("max_value_col")
+        if max_value_col is None:
+            max_value = float(self.params.get("max_value", default_max))
+            max_value_col = F.lit(max_value)
+
+        offset = max_value_col - min_value_col
 
         rng = self.rng()
         u = rng.uniform_double_01(self.spark_subtype)
-        col = F.lit(min_value) + u * F.lit(max_value - min_value)
+        col = min_value_col + u * offset
+
         return col.cast(FRACTIONAL_CAST[self.spark_subtype])
 
 
