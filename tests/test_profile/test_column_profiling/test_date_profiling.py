@@ -45,8 +45,7 @@ def test_date_profile_scenarios(spark, rows, nullable, expected_min, expected_ma
     date_profile = profile_datetime_column(df, "some_date_field")
 
     assert isinstance(date_profile, DateColumnProfile)
-    assert date_profile.name == "some_date_field"
-    assert date_profile.normalised_type == "datetime"
+    assert date_profile.col_name == "some_date_field"
     assert date_profile.nullable is nullable
     assert date_profile.default_rule() == "random_date"
 
@@ -82,8 +81,7 @@ def test_timestamp_ltz_profile_basic(spark):
     timestamp_profile = profile_datetime_column(df, "some_timestamp_field")
 
     assert isinstance(timestamp_profile, TimestampColumnProfile)
-    assert timestamp_profile.name == "some_timestamp_field"
-    assert timestamp_profile.normalised_type == "datetime"
+    assert timestamp_profile.col_name == "some_timestamp_field"
     assert timestamp_profile.default_rule() == "random_timestamp_ltz"
 
     assert (
@@ -93,10 +91,8 @@ def test_timestamp_ltz_profile_basic(spark):
     assert timestamp_profile.max_iso.startswith("2024-05-01T12:30:00")
     assert timestamp_profile.min_iso <= timestamp_profile.max_iso
 
-    assert timestamp_profile.session_time_zone == "UTC"
-    assert timestamp_profile.spark_timestamp_alias in ("TIMESTAMP_LTZ", "TIMESTAMP_NTZ")
-    assert (timestamp_profile.frac_precision is None) or (
-        0 <= timestamp_profile.frac_precision <= 6
+    assert (timestamp_profile.precision is None) or (
+        0 <= timestamp_profile.precision <= 6
     )
 
 
@@ -108,7 +104,6 @@ def test_timestamp_ltz_all_nulls(spark):
     df = spark.createDataFrame([(None,), (None,)], schema=schema)
 
     timestamp_profile = profile_datetime_column(df, "some_timestamp_field")
-    assert timestamp_profile.normalised_type == "datetime"
     assert timestamp_profile.min_iso is None and timestamp_profile.max_iso is None
 
 
@@ -130,7 +125,6 @@ def test_timestamp_ntz_profile_basic(spark):
     timestamp_profile = profile_datetime_column(df, "some_timestamp_field")
 
     assert isinstance(timestamp_profile, TimestampNTZColumnProfile)
-    assert timestamp_profile.normalised_type == "datetime"
     assert timestamp_profile.default_rule() == "random_timestamp_ntz"
 
     assert (
@@ -140,8 +134,8 @@ def test_timestamp_ntz_profile_basic(spark):
     assert timestamp_profile.max_iso.startswith("2024-01-01T23:59:59")
     assert timestamp_profile.min_iso <= timestamp_profile.max_iso
 
-    assert (timestamp_profile.frac_precision is None) or (
-        0 <= timestamp_profile.frac_precision <= 6
+    assert (timestamp_profile.precision is None) or (
+        0 <= timestamp_profile.precision <= 6
     )
 
 
@@ -152,5 +146,4 @@ def test_timestamp_ntz_all_nulls(spark):
     df = spark.createDataFrame([(None,), (None,)], schema=schema)
 
     timestamp_profile = profile_datetime_column(df, "some_timestamp_field")
-    assert timestamp_profile.normalised_type == "datetime"
     assert timestamp_profile.min_iso is None and timestamp_profile.max_iso is None

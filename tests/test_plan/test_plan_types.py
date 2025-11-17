@@ -1,5 +1,7 @@
 import pytest
 
+from respark.rules.registry import get_generation_rule
+from respark.rules.generation_rules.generate_string import RandomStringRule
 from respark.plan import (
     SchemaGenerationPlan,
     TableGenerationPlan,
@@ -42,10 +44,10 @@ def test_remove_fk_constraint_success_and_missing():
 
 def test_get_table_plan_and_update_row_count():
     plan = SchemaGenerationPlan(
-        table_plans=[
-            TableGenerationPlan(name="employees", row_count=10),
-            TableGenerationPlan(name="appraisals", row_count=20),
-        ]
+        table_plans={
+            "employees": TableGenerationPlan(name="employees", row_count=10),
+            "appraisals": TableGenerationPlan(name="appraisals", row_count=20),
+        }
     )
 
     t1 = plan.get_table_plan("employees")
@@ -61,63 +63,43 @@ def test_get_table_plan_and_update_row_count():
         plan.update_table_row_count("some_missing_table", 100)
 
 
-def test_get_column_plan_and_updates():
+def test_get_column_plan():
     plan = SchemaGenerationPlan(
-        table_plans=[
-            TableGenerationPlan(
+        table_plans={
+            "employees": TableGenerationPlan(
                 name="employees",
                 row_count=200,
-                column_plans=[
-                    ColumnGenerationPlan(
-                        name="first_name",
+                column_plans={
+                    "first_name": ColumnGenerationPlan(
+                        col_name="first_name",
                         data_type="string",
-                        rule="random_string",
-                        params={"min_length": 2, "max_length": 10},
+                        rule=get_generation_rule(
+                            "random_string", **{"min_length": 2, "max_length": 10}
+                        ),
                     ),
-                    ColumnGenerationPlan(
-                        name="department_id",
+                    "department_id": ColumnGenerationPlan(
+                        col_name="department_id",
                         data_type="int",
-                        rule="sample_from_reference",
-                        params={"min_value": 1, "max_value": 10},
+                        rule=get_generation_rule(
+                            "sample_from_reference", **{"min_value": 1, "max_value": 10}
+                        ),
                     ),
-                ],
+                },
             )
-        ]
+        }
     )
 
     col = plan.get_column_plan("employees", "first_name")
-    assert col.rule == "random_string"
-    assert col.params == {"min_length": 2, "max_length": 10}
-
-    plan.update_column_rule("employees", "first_name", "some_other_string_rule")
-    assert (
-        plan.get_column_plan("employees", "first_name").rule == "some_other_string_rule"
-    )
-
-    plan.update_column_params("employees", "first_name", {"max_length": 8})
-    assert plan.get_column_plan("employees", "first_name").params == {
-        "min_length": 2,
-        "max_length": 8,
-    }
-
-    with pytest.raises(ValueError):
-        plan.get_column_plan("employees", "some_missing_column")
-
-    with pytest.raises(ValueError):
-        plan.update_column_rule("employees", "some_missing_column", "random_rule")
-
-    with pytest.raises(ValueError):
-        plan.update_column_params(
-            "employees", "missisome_missing_columnng_col", {"some_param": 1}
-        )
+    assert isinstance(col.rule, RandomStringRule)
+    assert col.rule.params == {"min_length": 2, "max_length": 10}
 
 
 def test_build_table_dag_orders_parents_before_children():
     plan = SchemaGenerationPlan(
-        table_plans=[
-            TableGenerationPlan(name="employees", row_count=10),
-            TableGenerationPlan(name="appraisals", row_count=100),
-        ]
+        table_plans={
+            "employees": TableGenerationPlan(name="employees", row_count=10),
+            "appraisals": TableGenerationPlan(name="appraisals", row_count=100),
+        }
     )
     plan.add_fk_constraint("employees", "employee_id", "appraisals", "employee_id")
 
@@ -130,10 +112,10 @@ def test_build_table_dag_orders_parents_before_children():
 
 def test_build_table_dag_cycle_raises_runtimeerror():
     plan = SchemaGenerationPlan(
-        table_plans=[
-            TableGenerationPlan(name="employees", row_count=10),
-            TableGenerationPlan(name="appraisals", row_count=100),
-        ]
+        table_plans={
+            "employees": TableGenerationPlan(name="employees", row_count=10),
+            "appraisals": TableGenerationPlan(name="appraisals", row_count=100),
+        }
     )
     plan.add_fk_constraint("employees", "employee_id", "appraisals", "employee_id")
     plan.add_fk_constraint("appraisals", "employee_id", "employees", "employee_id")

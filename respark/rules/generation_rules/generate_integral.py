@@ -1,8 +1,8 @@
 from typing import Literal
-from pyspark.sql import Column
-from .core_rules import register_generation_rule, GenerationRule
+from pyspark.sql import Column, functions as F
+from ..rule_types import GenerationRule
+from ..registry import register_generation_rule
 from respark.core import INTEGRAL_BOUNDS, INTEGRAL_CAST
-from respark.random import randint_int
 
 
 class BaseIntegralRule(GenerationRule):
@@ -12,11 +12,26 @@ class BaseIntegralRule(GenerationRule):
     def generate_column(self) -> Column:
         default_min = INTEGRAL_BOUNDS[self.spark_subtype]["min_value"]
         default_max = INTEGRAL_BOUNDS[self.spark_subtype]["max_value"]
-        min_value = self.params.get("min_value", default_min)
-        max_value = self.params.get("max_value", default_max)
+
+        min_value_col = self.params.get("min_value_col")
+        if min_value_col is None:
+            min_value = float(self.params.get("min_value", default_min))
+            min_value_col = F.lit(min_value)
+
+        max_value_col = self.params.get("max_value_col")
+        if max_value_col is None:
+            max_value = float(self.params.get("max_value", default_max))
+            max_value_col = F.lit(max_value)
 
         rng = self.rng()
-        col = randint_int(rng, min_value, max_value)
+
+        offset = rng.uniform_long_inclusive(
+            min_col=min_value_col,
+            max_col=max_value_col,
+            salt=f"random_{self.spark_subtype}_range",
+        )
+
+        col = (min_value_col + offset).cast("long")
         return col.cast(INTEGRAL_CAST[self.spark_subtype])
 
 

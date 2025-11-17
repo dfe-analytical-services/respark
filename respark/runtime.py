@@ -1,6 +1,7 @@
 from typing import Any, List, Dict, Iterable, Optional
 from pyspark.sql import DataFrame
 
+from respark.rules.registry import get_generation_rule
 from respark.sampling import UniformParentSampler
 from respark.profile import (
     SchemaProfile,
@@ -84,46 +85,27 @@ class ResparkRuntime:
         if self.profile is None:
             raise RuntimeError("Profile is not set. Call profile_sources() first.")
 
-        table_generation_plans: List[TableGenerationPlan] = []
+        table_generation_plans: Dict[str, TableGenerationPlan] = {}
 
         for _, table_profile in self.profile.tables.items():
-            col_plans: List[ColumnGenerationPlan] = []
+            col_plans: Dict[str, ColumnGenerationPlan] = {}
             row_count = table_profile.row_count
 
             for _, column_profile in table_profile.columns.items():
-                col_plans.append(
-                    ColumnGenerationPlan(
-                        name=column_profile.name,
-                        data_type=column_profile.spark_subtype,
-                        rule=column_profile.default_rule(),
-                        params=column_profile.type_specific_params(),
-                    )
+                rule_name = column_profile.default_rule()
+                rule_params = column_profile.type_specific_params()
+                col_plans[column_profile.col_name] = ColumnGenerationPlan(
+                    col_name=column_profile.col_name,
+                    data_type=column_profile.spark_subtype,
+                    rule=get_generation_rule(rule_name, **rule_params),
                 )
 
-            table_generation_plans.append(
-                TableGenerationPlan(
-                    name=table_profile.name, row_count=row_count, column_plans=col_plans
-                )
+            table_generation_plans[table_profile.name] = TableGenerationPlan(
+                name=table_profile.name, row_count=row_count, column_plans=col_plans
             )
+
         self.generation_plan = SchemaGenerationPlan(table_plans=table_generation_plans)
         return self.generation_plan
-
-    def update_column_rule(self, table: str, col: str, rule: str) -> None:
-        if self.generation_plan is None:
-            raise RuntimeError("Call create_generation_plan() first.")
-        self.generation_plan.update_column_rule(table, col, rule)
-
-    def update_column_params(
-        self, table: str, col: str, params: Dict[str, Any]
-    ) -> None:
-        if self.generation_plan is None:
-            raise RuntimeError("Call create_generation_plan() first.")
-        self.generation_plan.update_column_params(table, col, params)
-
-    def update_table_row_count(self, table: str, new_row_count: int) -> None:
-        if self.generation_plan is None:
-            raise RuntimeError("Call create_generation_plan() first.")
-        self.generation_plan.update_table_row_count(table, new_row_count)
 
     def update_generation_plan(self) -> None:
         if self.generation_plan is None:

@@ -27,8 +27,7 @@ def test_profiling_for_each_integral_subtype(
     profile = profile_integral_column(df, "some_integral_field")
 
     assert isinstance(profile, expected_profile_class)
-    assert profile.name == "some_integral_field"
-    assert profile.normalised_type == "numeric"
+    assert profile.col_name == "some_integral_field"
     assert profile.nullable is True
     assert profile.min_value == 1
     assert profile.max_value == 5

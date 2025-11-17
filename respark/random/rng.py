@@ -1,5 +1,6 @@
 from typing import Any
 from pyspark.sql import Column, functions as F
+from respark.core.numeric_types import INTEGRAL_BOUNDS
 from .hashing import hash64
 
 # Constants used to build uniform doubles with ~53 bits of precision.
@@ -27,7 +28,7 @@ class RNG:
         """Create a 64-bit hash Column from (seed, salt..., row_idx)."""
         return hash64(self.seed, self.row_idx, *salt)
 
-    def uniform_01_double(self, *salt: Any) -> Column:
+    def uniform_double_01(self, *salt: Any) -> Column:
         """Uniform double in [0, 1) with ~53 bits of precision.
 
         Derived by taking the lower 53 bits of the 64-bit hash and scaling.
@@ -35,3 +36,34 @@ class RNG:
         return (F.pmod(self._hash64(*salt), F.lit(_U53_INT)) / F.lit(_U53)).cast(
             "double"
         )
+
+    def uniform_long_inclusive(
+        self, min_col: Column, max_col: Column, salt: str
+    ) -> Column:
+        """
+        Sample a LONG uniformly from [min_col, max_col], inclusive.
+        Assumes caller handles nulls/invalids.
+        """
+        min_col = min_col.cast("long")
+        max_col = max_col.cast("long")
+        range_double = (max_col - min_col).cast("double")
+        offset = F.floor(self.uniform_double_01(salt) * range_double).cast("long")
+        return (min_col + offset).cast("long")
+
+    def uniform_int_inclusive(
+        self, min_col: Column, max_col: Column, salt: str
+    ) -> Column:
+        """
+        Sample an INT uniformly from [min_col, max_col], inclusive.
+        Delegates to the LONG variant after clamping bounds to int range.
+        """
+        INT_MIN = INTEGRAL_BOUNDS["int"]["min_value"]
+        INT_MAX = INTEGRAL_BOUNDS["int"]["max_value"]
+
+        min_col_clamped = F.greatest(min_col.cast("long"), F.lit(INT_MIN).cast("long"))
+        max_col_clamped = F.least(max_col.cast("long"), F.lit(INT_MAX).cast("long"))
+
+        sampled_long = self.uniform_long_inclusive(
+            min_col_clamped, max_col_clamped, salt
+        )
+        return sampled_long.cast("int")
