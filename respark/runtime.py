@@ -94,8 +94,8 @@ class ResparkRuntime:
             for _, column_profile in table_profile.columns.items():
                 rule_name = column_profile.default_rule()
                 rule_params = column_profile.type_specific_params()
-                col_plans[column_profile.name] = ColumnGenerationPlan(
-                    name=column_profile.name,
+                col_plans[column_profile.col_name] = ColumnGenerationPlan(
+                    col_name=column_profile.col_name,
                     data_type=column_profile.spark_subtype,
                     rule=get_generation_rule(rule_name, **rule_params),
                 )

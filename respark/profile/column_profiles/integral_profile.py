@@ -1,10 +1,9 @@
 from dataclasses import dataclass
 from typing import Dict, ClassVar, TypedDict, Literal, Any, Optional
 from pyspark.sql import DataFrame, functions as F, types as T
-from .base_column_profile import BaseColumnProfile
+from .base_column_profile import BaseColumnProfile, calculate_null_stats
 
 
-# Parameters unique to Integral values
 class IntegralParams(TypedDict):
     min_value: Optional[int]
     max_value: Optional[int]
@@ -12,16 +11,12 @@ class IntegralParams(TypedDict):
     spark_subtype: Literal["byte", "short", "int", "long"]
 
 
-# Intergral Column Profile Class
 @dataclass(slots=True)
 class IntegralColumnProfile(BaseColumnProfile[IntegralParams]):
     min_value: Optional[int] = None
     max_value: Optional[int] = None
     mean_value: Optional[float] = None
     spark_subtype: ClassVar[Literal["byte", "short", "int", "long"]]
-
-    def default_rule(self) -> str:
-        return f"random_{self.spark_subtype}"
 
     def type_specific_params(self) -> Dict[str, Any]:
         return {
@@ -51,9 +46,16 @@ class LongColumnProfile(IntegralColumnProfile):
     spark_subtype: ClassVar[Literal["long"]] = "long"
 
 
-def profile_integral_column(df: DataFrame, col_name: str) -> IntegralColumnProfile:
-    field = df.schema[col_name]
+def profile_integral_column(
+    source_df: DataFrame, col_name: str
+) -> IntegralColumnProfile:
+    field = source_df.schema[col_name]
     nullable = field.nullable
+    null_ratio = (
+        calculate_null_stats(source_df=source_df, col_name=col_name)
+        if nullable
+        else 0.0
+    )
     data_type = field.dataType
 
     if isinstance(data_type, T.ByteType):
@@ -72,7 +74,7 @@ def profile_integral_column(df: DataFrame, col_name: str) -> IntegralColumnProfi
         raise TypeError(f"Column {col_name} is not a integral type: {data_type}")
 
     col_profile = (
-        df.select(F.col(col_name).cast(cast_type).alias("val"))
+        source_df.select(F.col(col_name).cast(cast_type).alias("val"))
         .agg(
             F.min("val").alias("min_value"),
             F.max("val").alias("max_value"),
@@ -83,9 +85,9 @@ def profile_integral_column(df: DataFrame, col_name: str) -> IntegralColumnProfi
     col_stats = col_profile.asDict() if col_profile else {}
 
     return IntegralClass(
-        name=col_name,
-        normalised_type="numeric",
+        col_name=col_name,
         nullable=nullable,
+        null_ratio=null_ratio,
         min_value=col_stats.get("min_value"),
         max_value=col_stats.get("max_value"),
         mean_value=col_stats.get("mean_value"),

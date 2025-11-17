@@ -34,8 +34,6 @@ def test_random_date_bounds_and_type(spark, test_seed):
 def test_random_timestamp_ltz_bounds_and_type(spark, test_seed):
     spark.conf.set("spark.sql.session.timeZone", "UTC")
 
-    min_iso = "2020-01-01T00:00:00.000000"
-    max_iso = "2025-12-31T23:59:59.999999"
     min_epoch_micros = "1577836800000000"
     max_epoch_micros = "1767225599999999"
 
@@ -43,8 +41,6 @@ def test_random_timestamp_ltz_bounds_and_type(spark, test_seed):
         "random_timestamp_ltz",
         __row_idx=F.col("id"),
         __seed=test_seed,
-        min_iso=min_iso,
-        max_iso=max_iso,
         min_epoch_micros=min_epoch_micros,
         max_epoch_micros=max_epoch_micros,
     )
@@ -70,15 +66,15 @@ def test_random_timestamp_ltz_bounds_and_type(spark, test_seed):
 def test_random_timestamp_ntz_bounds_and_type(spark, test_seed):
     spark.conf.set("spark.sql.session.timeZone", "UTC")
 
-    min_iso = "2020-01-01T00:00:00.000000"
-    max_iso = "2025-12-31T23:59:59.999999"
+    min_epoch_micros = "1577836800000000"
+    max_epoch_micros = "1767225599999999"
 
     rule = get_generation_rule(
         "random_timestamp_ntz",
         __row_idx=F.col("id"),
         __seed=test_seed,
-        min_iso=min_iso,
-        max_iso=max_iso,
+        min_epoch_micros=min_epoch_micros,
+        max_epoch_micros=max_epoch_micros,
     )
 
     df = spark.range(5000).select(rule.generate_column().alias("test_timestamp_ntz"))

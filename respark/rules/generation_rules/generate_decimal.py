@@ -1,29 +1,47 @@
-from decimal import Decimal
 from pyspark.sql import Column, functions as F, types as T
 from ..rule_types import GenerationRule
 from ..registry import register_generation_rule
-from respark.random import randint_long
 
 
 @register_generation_rule("random_decimal")
 class RandomDecimalRule(GenerationRule):
+
     def generate_column(self) -> Column:
+        precision = int(self.params["precision"])
+        scale = int(self.params["scale"])
 
-        precision: int = self.params["precision"]
-        scale: int = self.params["scale"]
-        min_value: str = self.params["min_value"]
-        max_value: str = self.params["max_value"]
+        max_scale_multiplier = F.lit(10**scale).cast(T.DecimalType(38, scale))
 
-        multiplier = 10**scale
-        scaled_min = int(Decimal(min_value) * multiplier)
-        scaled_max = int(Decimal(max_value) * multiplier)
+        min_col = self.params.get("min_value_col")
+        if min_col is None:
+            min_value = self.params.get("min_value", "0")
+            min_dec = F.lit(min_value).cast(T.DecimalType(38, scale))
+        else:
+            min_dec = F.col(min_col).cast(T.DecimalType(38, scale))
+
+        max_col = self.params.get("max_value_col")
+        if max_col is None:
+            max_value = self.params.get("max_value", "1")
+            max_dec = F.lit(max_value).cast(T.DecimalType(38, scale))
+        else:
+            max_dec = F.col(max_col).cast(T.DecimalType(38, scale))
+
+        scaled_min = F.floor(min_dec * max_scale_multiplier)
+        scaled_max = F.floor(max_dec * max_scale_multiplier)
+
+        range_col = scaled_max - scaled_min
 
         rng = self.rng()
-        scaled = randint_long(
-            rng, scaled_min, scaled_max, "random_decimal", precision, scale
+        offset = rng.uniform_long_inclusive(
+            min_col=F.lit(0),
+            max_col=range_col,
+            salt="random_decimal_range",
         )
 
-        scaled_dec = scaled.cast(T.DecimalType(38, 0))
-        divisor = F.lit(multiplier).cast(T.DecimalType(38, 0))
-        value_dec = scaled_dec / divisor
-        return value_dec.cast(T.DecimalType(precision, scale))
+        scaled_value = scaled_min + offset
+
+        generated_dec = (scaled_value / max_scale_multiplier).cast(
+            T.DecimalType(precision, scale)
+        )
+
+        return generated_dec

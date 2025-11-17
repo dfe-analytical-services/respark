@@ -24,7 +24,7 @@ def test_random_bool_follows_distribution(spark, test_seed):
         "random_boolean",
         __row_idx=F.col("id"),
         __seed=test_seed,
-        percentage_true=0.9,
+        p_true=0.9,
     )
     most_true_df = spark.range(5000).select(
         most_true_rule.generate_column().alias("test_bool")
@@ -38,7 +38,7 @@ def test_random_bool_follows_distribution(spark, test_seed):
         "random_boolean",
         __row_idx=F.col("id"),
         __seed=test_seed,
-        percentage_true=0.0,
+        p_true=0.0,
     )
     all_false_df = spark.range(5000).select(
         all_false_rule.generate_column().alias("test_bool")

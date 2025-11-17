@@ -3,7 +3,6 @@ from decimal import Decimal
 from datetime import date
 from pyspark.sql import types as T
 
-
 from respark.profile.column_profiles import (
     BooleanColumnProfile,
     DateColumnProfile,
@@ -14,7 +13,6 @@ from respark.profile.column_profiles import (
     LongColumnProfile,
     StringColumnProfile,
 )
-
 
 from respark.profile import TableProfile, profile_table
 
@@ -65,8 +63,8 @@ def test_profile_table_happy_path_mixed_types(spark):
     assert isinstance(tp.columns["long_col"], LongColumnProfile)
     assert isinstance(tp.columns["str_col"], StringColumnProfile)
 
-    assert tp.columns["str_col"].name == "str_col"
-    assert tp.columns["int_col"].name == "int_col"
+    assert tp.columns["str_col"].col_name == "str_col"
+    assert tp.columns["int_col"].col_name == "int_col"
 
 
 def test_profile_table_unsupported_type_raises(spark):

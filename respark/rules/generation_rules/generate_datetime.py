@@ -1,17 +1,25 @@
-from datetime import datetime
 from pyspark.sql import Column, functions as F
 from ..rule_types import GenerationRule
 from ..registry import register_generation_rule
-from respark.random import randint_int, randint_long
 
 
-# Date Rules
+def _reduce_precision(epoch_col: Column, precision: int | None) -> Column:
+    """
+    If precision is provided, floor epoch micros to that resolution.
+    Example: precision=3 -> keep milliseconds (resolution=1000 us).
+    """
+    if precision is None:
+        return epoch_col
+    if precision == 6:
+        return epoch_col
+
+    resolution = 10 ** (6 - precision)
+
+    return (F.floor(epoch_col / F.lit(resolution)) * F.lit(resolution)).cast("long")
+
+
 @register_generation_rule("random_date")
 class RandomDateRule(GenerationRule):
-    """
-    Generate a random T.Datetype between inclusive min/max bounds.
-    Uses a literal value if provided via column profiling.
-    """
 
     def generate_column(self) -> Column:
 
@@ -38,30 +46,63 @@ class RandomDateRule(GenerationRule):
 
 @register_generation_rule("random_timestamp_ltz")
 class RandomTimestampLTZ(GenerationRule):
+
     def generate_column(self) -> Column:
-        min_epoch_micros = self.params.get("min_epoch_micros", "1577836800000000")
-        max_epoch_micros = self.params.get("max_epoch_micros", "1767225599999999")
+        min_epoch_col = self.params.get("min_epoch_col")
+        max_epoch_col = self.params.get("max_epoch_col")
+        precision = self.params.get("precision")
 
-        timespan_range = int(max_epoch_micros) - int(min_epoch_micros)
+        if min_epoch_col is None:
+            min_epoch_micros = self.params.get("min_epoch_micros", "1577836800000000")
+            min_epoch_col = F.lit(min_epoch_micros).cast("long")
+
+        if max_epoch_col is None:
+            max_epoch_micros = self.params.get("max_epoch_micros", "1767225599999999")
+            max_epoch_col = F.lit(max_epoch_micros).cast("long")
+
+        timespan_range = max_epoch_col - min_epoch_col
+
         rng = self.rng()
+        offset = rng.uniform_int_inclusive(
+            min_col=F.lit(0), max_col=timespan_range, salt="random_timestamp_ltz_range"
+        )
 
-        offset = randint_long(rng, 0, timespan_range)
-        return F.timestamp_micros(F.lit(min_epoch_micros).cast("long") + offset)
+        epoch_col = (min_epoch_col + offset).cast("long")
+        timestamp_reduced_prec = _reduce_precision(
+            epoch_col=epoch_col, precision=precision
+        )
+
+        return F.timestamp_micros(timestamp_reduced_prec)
 
 
 @register_generation_rule("random_timestamp_ntz")
 class RandomTimestampNTZ(GenerationRule):
+
     def generate_column(self) -> Column:
-        min_epoch_micros = self.params.get("min_epoch_micros", "1577836800000000")
-        max_epoch_micros = self.params.get("max_epoch_micros", "1767225599999999")
+        min_epoch_col = self.params.get("min_epoch_col")
+        max_epoch_col = self.params.get("max_epoch_col")
+        precision = self.params.get("precision")
 
-        timespan_range = int(max_epoch_micros) - int(min_epoch_micros)
+        if min_epoch_col is None:
+            min_epoch_micros = self.params.get("min_epoch_micros", "1577836800000000")
+            min_epoch_col = F.lit(min_epoch_micros).cast("long")
+
+        if max_epoch_col is None:
+            max_epoch_micros = self.params.get("max_epoch_micros", "1767225599999999")
+            max_epoch_col = F.lit(max_epoch_micros).cast("long")
+
+        timespan_range = max_epoch_col - min_epoch_col
+
         rng = self.rng()
-
-        offset = randint_long(rng, 0, timespan_range)
-        timestamp_ltz = F.timestamp_micros(
-            F.lit(min_epoch_micros).cast("long") + offset
+        offset = rng.uniform_int_inclusive(
+            min_col=F.lit(0), max_col=timespan_range, salt="random_timestamp_ntz_range"
         )
 
-        timestamp_iso = F.date_format(timestamp_ltz, "yyyy-MM-dd HH:mm:ss.SSSSSS")
-        return F.to_timestamp_ntz(timestamp_iso)
+        epoch_col = (min_epoch_col + offset).cast("long")
+        timestamp_reduced_prec = _reduce_precision(
+            epoch_col=epoch_col, precision=precision
+        )
+        ts_ltz = F.timestamp_micros(timestamp_reduced_prec)
+        ts_iso = F.date_format(ts_ltz, "yyyy-MM-dd HH:mm:ss.SSSSSS")
+
+        return F.to_timestamp_ntz(ts_iso)

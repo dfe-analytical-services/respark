@@ -130,7 +130,7 @@ class SynthTableGenerator:
         Create a Dataframe (__row_idx, target_col) for a single column
         of generated synthetic data.
         """
-        col_name = column_plan.name
+        col_name = column_plan.col_name
         target_dtype_str = column_plan.data_type
 
         try:
