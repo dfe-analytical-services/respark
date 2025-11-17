@@ -2,7 +2,7 @@ from typing import Literal
 from pyspark.sql import Column, functions as F
 from ..rule_types import GenerationRule
 from ..registry import register_generation_rule
-from respark.core import FRACTIONAL_BOUNDS, FRACTIONAL_CAST
+from respark.core import FRACTIONAL_BOUNDS, FRACTIONAL_TYPE
 
 
 class BaseFractionalRule(GenerationRule):
@@ -28,7 +28,7 @@ class BaseFractionalRule(GenerationRule):
         u = rng.uniform_double_01(self.spark_subtype)
         col = min_value_col + u * offset
 
-        return col.cast(FRACTIONAL_CAST[self.spark_subtype])
+        return col.cast(FRACTIONAL_TYPE[self.spark_subtype]())
 
 
 @register_generation_rule("random_float")
