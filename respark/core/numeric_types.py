@@ -14,11 +14,11 @@ INTEGRAL_BITS = {
     "long": 64,
 }
 
-INTEGRAL_CAST = {
-    "byte": T.ByteType(),
-    "short": T.ShortType(),
-    "int": T.IntegerType(),
-    "long": T.LongType(),
+INTEGRAL_TYPE = {
+    "byte": T.ByteType,
+    "short": T.ShortType,
+    "int": T.IntegerType,
+    "long": T.LongType,
 }
 
 INTEGRAL_BOUNDS = {
@@ -41,7 +41,7 @@ FRACTIONAL_BOUNDS = {
     "double": (DOUBLE_MIN, DOUBLE_MAX),
 }
 
-FRACTIONAL_CAST = {
-    "float": T.FloatType(),
-    "double": T.DoubleType(),
+FRACTIONAL_TYPE = {
+    "float": T.FloatType,
+    "double": T.DoubleType,
 }
