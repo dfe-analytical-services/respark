@@ -11,11 +11,13 @@ if TYPE_CHECKING:
 
 TYPE_DISPATCH = {
     "boolean": T.BooleanType(),
+    "byte": T.ByteType(),
     "double": T.DoubleType(),
     "decimal": T.DecimalType(),
     "date": T.DateType(),
     "float": T.FloatType(),
     "int": T.IntegerType(),
+    "short": T.ShortType(),
     "long": T.LongType(),
     "string": T.StringType(),
     "timestamp_ltz": T.TimestampType(),

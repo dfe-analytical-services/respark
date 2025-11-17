@@ -1,19 +1,43 @@
+import pytest
 from pyspark.sql import functions as F, types as T
 from respark.rules.registry import get_generation_rule
-from respark.core import INTEGRAL_BOUNDS
+from respark.core import INTEGRAL_BOUNDS, INTEGRAL_TYPE
 
 
-def test_random_int_default_bounds_and_type(spark, test_seed):
-    rule = get_generation_rule("random_int", __row_idx=F.col("id"), __seed=test_seed)
-    df = spark.range(1000).select(rule.generate_column().alias("test_int"))
+@pytest.mark.parametrize(
+    "integral_type",
+    [
+        pytest.param("byte"),
+        pytest.param("short"),
+        pytest.param("int"),
+        pytest.param("long"),
+    ],
+)
+def test_integral_generation_scenarios(
+    spark,
+    test_seed,
+    integral_type,
+):
+    rule = get_generation_rule(
+        f"random_{integral_type}",
+        __row_idx=F.col("id"),
+        __seed=test_seed,
+        min_value=INTEGRAL_BOUNDS[integral_type]["min_value"],
+        max_value=INTEGRAL_BOUNDS[integral_type]["max_value"],
+    )
 
-    assert isinstance(df.schema["test_int"].dataType, T.IntegerType)
+    df = spark.range(5000).select(rule.generate_column().alias("test_integrals"))
+
+    assert isinstance(
+        df.schema["test_integrals"].dataType, INTEGRAL_TYPE[integral_type]
+    )
 
     row = df.select(
-        F.min("test_int").alias("min_value"), F.max("test_int").alias("max_value")
+        F.min("test_integrals").alias("min_value"),
+        F.max("test_integrals").alias("max_value"),
     ).first()
-    assert row.min_value >= INTEGRAL_BOUNDS["int"]["min_value"]
-    assert row.max_value <= INTEGRAL_BOUNDS["int"]["max_value"]
+    assert row.min_value >= INTEGRAL_BOUNDS[integral_type]["min_value"]
+    assert row.max_value <= INTEGRAL_BOUNDS[integral_type]["max_value"]
 
 
 def test_random_int_custom_inclusive_bounds(spark, test_seed):
