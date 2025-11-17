@@ -5,10 +5,12 @@ from pyspark.sql import types as T
 
 from respark.profile.column_profiles import (
     BooleanColumnProfile,
+    ByteColumnProfile,
     DateColumnProfile,
     DecimalColumnProfile,
     FloatColumnProfile,
     DoubleColumnProfile,
+    ShortColumnProfile,
     IntColumnProfile,
     LongColumnProfile,
     StringColumnProfile,
@@ -21,20 +23,44 @@ def test_profile_table_happy_path_mixed_types(spark):
     schema = T.StructType(
         [
             T.StructField("bool_col", T.BooleanType(), True),
+            T.StructField("byte_col", T.ByteType(), True),
             T.StructField("date_col", T.DateType(), True),
             T.StructField("dec_col", T.DecimalType(10, 2), True),
             T.StructField("float_col", T.FloatType(), True),
             T.StructField("double_col", T.DoubleType(), True),
             T.StructField("int_col", T.IntegerType(), True),
+            T.StructField("short_col", T.ShortType(), True),
             T.StructField("long_col", T.LongType(), True),
             T.StructField("str_col", T.StringType(), True),
         ]
     )
 
     rows = [
-        (True, date(2024, 1, 1), Decimal("1.23"), 1.0, 10.5, 1, 10000000000, "a"),
-        (False, date(2024, 1, 5), Decimal("4.56"), 2.0, 20.5, 2, 20000000000, "bb"),
-        (None, None, None, None, None, None, None, None),
+        (
+            True,
+            0,
+            date(2024, 1, 1),
+            Decimal("1.23"),
+            1.0,
+            10.5,
+            1,
+            100,
+            10000000000,
+            "a",
+        ),
+        (
+            False,
+            1,
+            date(2024, 1, 5),
+            Decimal("4.56"),
+            2.0,
+            20.5,
+            2,
+            150,
+            20000000000,
+            "bb",
+        ),
+        (None, None, None, None, None, None, None, None, None, None),
     ]
     df = spark.createDataFrame(rows, schema=schema)
 
@@ -45,22 +71,26 @@ def test_profile_table_happy_path_mixed_types(spark):
     assert tp.row_count == len(rows)
     assert set(tp.columns.keys()) == {
         "bool_col",
+        "byte_col",
         "date_col",
         "dec_col",
         "float_col",
         "double_col",
         "int_col",
+        "short_col",
         "long_col",
         "str_col",
     }
 
     assert isinstance(tp.columns["bool_col"], BooleanColumnProfile)
+    assert isinstance(tp.columns["byte_col"], ByteColumnProfile)
     assert isinstance(tp.columns["date_col"], DateColumnProfile)
     assert isinstance(tp.columns["dec_col"], DecimalColumnProfile)
     assert isinstance(tp.columns["float_col"], FloatColumnProfile)
     assert isinstance(tp.columns["double_col"], DoubleColumnProfile)
     assert isinstance(tp.columns["int_col"], IntColumnProfile)
     assert isinstance(tp.columns["long_col"], LongColumnProfile)
+    assert isinstance(tp.columns["short_col"], ShortColumnProfile)
     assert isinstance(tp.columns["str_col"], StringColumnProfile)
 
     assert tp.columns["str_col"].col_name == "str_col"
