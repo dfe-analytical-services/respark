@@ -26,17 +26,6 @@ def test_profile_sources_includes_registered_tables(
     assert "sales" in profile.tables
 
 
-def test_profile_specific_subset(test_runtime, employees_df, sales_df, departments_df):
-    test_runtime.register_source("employees", employees_df)
-    test_runtime.register_source("sales", sales_df)
-    test_runtime.register_reference("departments", departments_df)
-
-    profile = test_runtime.profile_sources(target_sources=["employees"])
-    assert "employees" in profile.tables
-
-    assert "sales" not in profile.tables
-    assert "departments" not in profile.tables
-
 
 ###
 # Testing update methods

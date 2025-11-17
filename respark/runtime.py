@@ -48,20 +48,13 @@ class ResparkRuntime:
         """
         self.references[name] = df
 
-    def profile_sources(
-        self, target_sources: Optional[Iterable[str]] = None
-    ) -> SchemaProfile:
+    def profile_sources(self) -> SchemaProfile:
         """
         Profile a subset (or all) registered sources into a SchemaProfile.
         Stores the result on self.profile and returns it.
         """
 
-        table_map = (
-            self.sources
-            if target_sources is None
-            else {n: self.sources[n] for n in target_sources}
-        )
-        self.profile = profile_schema(table_map)
+        self.profile = profile_schema(self.sources)
         return self.profile
 
     def get_table_profile(self, table_name: str) -> Optional[TableProfile]:
