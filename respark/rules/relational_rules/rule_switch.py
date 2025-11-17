@@ -77,8 +77,7 @@ class RuleSwitch(RelationalGenerationRule):
 
         when_clause: str = when_then_dict["when"]
 
-        # Validate then_rule ipiuts
-
+        # Validate then_rule inputs
         then_dict: Dict[str, Any] = when_then_dict["then"]
 
         if "rule_name" not in then_dict.keys():

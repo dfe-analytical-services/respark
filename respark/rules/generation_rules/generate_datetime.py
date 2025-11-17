@@ -6,7 +6,7 @@ from ..registry import register_generation_rule
 def _reduce_precision(epoch_col: Column, precision: int | None) -> Column:
     """
     If precision is provided, floor epoch micros to that resolution.
-    Example: frac_precision=3 -> keep milliseconds (resolution=1000 us).
+    Example: precision=3 -> keep milliseconds (resolution=1000 us).
     """
     if precision is None:
         return epoch_col

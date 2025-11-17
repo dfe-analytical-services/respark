@@ -8,17 +8,18 @@ from .base_column_profile import BaseColumnProfile, calculate_null_stats
 class DecimalParams(TypedDict):
     precision: Optional[int]
     scale: Optional[int]
-    min_value: Optional[Decimal]
-    max_value: Optional[Decimal]
+    min_value: Optional[str]
+    max_value: Optional[str]
 
 
 @dataclass(slots=True)
 class DecimalColumnProfile(BaseColumnProfile[DecimalParams]):
     spark_subtype: str = "decimal"
+
     precision: Optional[int] = None
     scale: Optional[int] = None
-    min_value: Optional[Decimal] = None
-    max_value: Optional[Decimal] = None
+    min_value: Optional[str] = None
+    max_value: Optional[str] = None
 
     def type_specific_params(self) -> DecimalParams:
         return {
@@ -56,15 +57,11 @@ def profile_decimal_column(source_df: DataFrame, col_name: str) -> DecimalColumn
 
     col_stats = col_profile.asDict() if col_profile else {}
 
-    min_value: Optional[Decimal] = (
-        Decimal(str(col_stats["min_value"]))
-        if col_stats.get("min_value") is not None
-        else None
+    min_value = (
+        str(col_stats["min_value"]) if col_stats.get("min_value") is not None else None
     )
-    max_value: Optional[Decimal] = (
-        Decimal(str(col_stats["max_value"]))
-        if col_stats.get("max_value") is not None
-        else None
+    max_value = (
+        str(col_stats["max_value"]) if col_stats.get("max_value") is not None else None
     )
 
     return DecimalColumnProfile(

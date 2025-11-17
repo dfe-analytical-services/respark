@@ -16,8 +16,8 @@ from respark.profile.column_profiles.decimal_profile import (
             2,
             [(Decimal("1.23"),), (Decimal("4.56"),), (Decimal("3.21"),)],
             False,
-            Decimal("1.23"),
-            Decimal("4.56"),
+            "1.23",
+            "4.56",
             id="p10-s2-simple",
         ),
         pytest.param(
@@ -25,8 +25,8 @@ from respark.profile.column_profiles.decimal_profile import (
             3,
             [(Decimal("-2.500"),), (Decimal("1.250"),), (Decimal("3.250"),), (None,)],
             True,
-            Decimal("-2.500"),
-            Decimal("3.250"),
+            "-2.500",
+            "3.250",
             id="p6-s3-negatives-with-null",
         ),
         pytest.param(
