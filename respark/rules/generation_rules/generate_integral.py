@@ -26,7 +26,7 @@ class BaseIntegralRule(GenerationRule):
         rng = self.rng()
 
         offset = rng.uniform_long_inclusive(
-            min_col=min_value_col,
+            min_col=F.lit(0),
             max_col=max_value_col,
             salt=f"random_{self.spark_subtype}_range",
         )
